@@ -1,0 +1,377 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: Yaraslau_Andrushchan
+ * Date: 5/27/14
+ * Time: 7:43 PM
+ */
+
+/**
+ * Implements hook_schema
+ */
+function amcr_schema() {
+  $schema['amcr_report'] = array(
+    'description' => 'main report table!',
+    'fields' => array(
+      'id' => array(
+        'description' => 'TODO: please describe this field!',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
+      'report_suite' => array(
+        'description' => 'reportSuite field',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => FALSE,
+      ),
+      'period' => array(
+        'description' => 'period field',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => FALSE,
+      ),
+      'elements_id' => array(
+        'description' => 'foregn key to amcr_report_elements_list table',
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+      'metrics_id' => array(
+        'description' => 'foregn key to amcr_report_metrics_list table',
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+      'type' => array(
+        'description' => 'type field',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => FALSE,
+      ),
+      'data_id' => array(
+        'description' => 'foregn key to amcr_report_data table',
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+      'totals_id' => array(
+        'description' => 'foregn key to amcr_report_counts_list table',
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+    ),
+    'primary key' => array('id'),
+    'unique keys' => array(
+      'id' => array('id')
+    ),
+  );
+  $schema['amcr_report_count'] = array(
+    'description' => 'counts values',
+    'fields' => array(
+      'id' => array(
+        'description' => 'primary key',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
+      'list_id' => array(
+        'description' => 'foreign key to amcr_report_count_list table',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'value' => array(
+        'description' => 'counter value',
+        'type' => 'float',
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
+    ),
+    'unique keys' => array(
+      'id' => array('id')
+    ),
+  );
+
+  $schema['amcr_report_count_list'] = array(
+    'description' => 'forms lists of counts',
+    'fields' => array(
+      'id' => array(
+        'description' => 'primary key',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
+      'report_id' => array(
+        'description' => 'foreign key to amcr_report table',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+    ),
+    'unique keys' => array(
+      'id' => array('id')
+    ),
+  );
+
+  $schema['amcr_report_data'] = array(
+    'description' => 'contains report data',
+    'fields' => array(
+      'id' => array(
+        'description' => 'primary key',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
+      'url' => array(
+        'description' => 'url field',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => FALSE,
+      ),
+      'year' => array(
+        'description' => 'year field',
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+      'month' => array(
+        'description' => 'month field',
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+      'day' => array(
+        'description' => 'day field',
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+      'hour' => array(
+        'description' => 'hour field',
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+      'counts_id' => array(
+        'description' => 'foregn key to amcr_report_count',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'breakdown_id' => array(
+        'description' => 'Child data list. foreign key to amcr_report_data_list',
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+      'name' => array(
+        'description' => 'name field',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => FALSE,
+      ),
+      'list_id' => array(
+        'description' => 'foregn key to amcr_report_data_list',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('id'),
+    'unique keys' => array(
+      'id' => array('id')
+    ),
+  );
+
+  $schema['amcr_report_data_list'] = array(
+    'description' => 'used to compose data from amcr_report_data into data lists',
+    'fields' => array(
+      'id' => array(
+        'description' => 'primary key',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
+      'report_id' => array(
+        'description' => 'foreign key to amcr_report table',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('id'),
+    'unique keys' => array(
+      'id' => array('id')
+    ),
+  );
+
+  $schema['amcr_report_element'] = array(
+    'description' => 'report elements',
+    'fields' => array(
+      'id' => array(
+        'description' => 'id field, primary key',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+      ),
+      'name' => array(
+        'description' => 'name field',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => FALSE,
+      ),
+      'type' => array(
+        'description' => 'type field',
+        'type' => 'varchar',
+        'length' => '100',
+        'not null' => FALSE,
+      ),
+      'latency' => array(
+        'description' => 'latency field',
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+      'current' => array(
+        'description' => 'current field',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => FALSE,
+      ),
+      'list_id' => array(
+        'description' => 'foregn key to amcr_report_element_list table',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('id'),
+  );
+
+  $schema['amcr_report_element_list'] = array(
+    'description' => 'form lists of report elements',
+    'fields' => array(
+      'id' => array(
+        'description' => 'primary key',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
+      'report_id' => array(
+        'description' => 'foreign key to amcr_report table',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+    ),
+    'unique keys' => array(
+      'id' => array('id')
+    ),
+  );
+
+  $schema['amcr_report_metric'] = array(
+    'description' => 'cotains reports metrics',
+    'fields' => array(
+      'id' => array(
+        'description' => 'id field',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+      ),
+      'name' => array(
+        'description' => 'name field',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => FALSE,
+      ),
+      'type' => array(
+        'description' => 'type field',
+        'type' => 'varchar',
+        'length' => '20',
+        'not null' => FALSE,
+      ),
+      'latency' => array(
+        'description' => 'latency field',
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+      'current' => array(
+        'description' => 'current field',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => FALSE,
+      ),
+      'list_id' => array(
+        'description' => 'foregn key to amcr_report_metric_list table',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('id'),
+  );
+
+  $schema['amcr_report_metric_list'] = array(
+    'description' => 'form lists of report metrics',
+    'fields' => array(
+      'id' => array(
+        'description' => 'primary key',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
+      'report_id' => array(
+        'description' => 'foreign key to report table',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+    ),
+    'unique keys' => array(
+      'id' => array('id')
+    ),
+  );
+
+  $schema['amcr_report_response'] = array(
+    'description' => 'response data',
+    'fields' => array(
+      'id' => array(
+        'description' => 'primary key',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
+      'status' => array(
+        'description' => 'status field',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => FALSE,
+      ),
+      'status_msg' => array(
+        'description' => 'statusMsg',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => FALSE,
+      ),
+      'status_desc' => array(
+        'description' => 'statusDesc',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => FALSE,
+      ),
+      'wait_aeconds' => array(
+        'description' => 'waitSeconds',
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+      'run_aeconds' => array(
+        'description' => 'runSeconds',
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+      'report_id' => array(
+        'description' => 'foreign key to report table',
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+    ),
+    'primary key' => array('id'),
+    'unique keys' => array(
+      'id' => array('id')
+    ),
+  );
+
+  return $schema;
+}
+

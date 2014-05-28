@@ -350,14 +350,14 @@ function amcr_schema() {
         'length' => '255',
         'not null' => FALSE,
       ),
-      'wait_aeconds' => array(
+      'wait_seconds' => array(
         'description' => 'waitSeconds',
-        'type' => 'int',
+        'type' => 'float',
         'not null' => FALSE,
       ),
-      'run_aeconds' => array(
+      'run_seconds' => array(
         'description' => 'runSeconds',
-        'type' => 'int',
+        'type' => 'float',
         'not null' => FALSE,
       ),
       'report_id' => array(

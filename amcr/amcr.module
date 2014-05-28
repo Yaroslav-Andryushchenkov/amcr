@@ -24,8 +24,8 @@ function amcr_menu() {
  * Page callbac, form amcr menu item
  */
 function amcr_test_page() {
-  $data_source = new VimnPopularityOmniture;
-  $data_source->get_data();
+  $data_source = new AmcrReport;
+  return $data_source->getData();
 }
 
 

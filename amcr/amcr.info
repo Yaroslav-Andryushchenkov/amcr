@@ -1,4 +1,4 @@
 name = Adobe marketing cloud reports
 description = Make data from Adobe marketing cloud repords available for views.
 core = 7.x
-files[] = vimn_popularity_data_source.inc
+files[] = amcr.report.class.inc

@@ -85,6 +85,11 @@ function amcr_schema() {
         'size' => 'big',
         'not null' => TRUE,
       ),
+      'metric_id' => array(
+        'description' => 'foreign key to amcr_report_metric table',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
     ),
     'unique keys' => array(
       'id' => array('id')
@@ -169,6 +174,11 @@ function amcr_schema() {
         'type' => 'int',
         'not null' => TRUE,
       ),
+      'element_id' => array(
+        'description' => 'foreign key to amcr_report_element table',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
     ),
     'primary key' => array('id'),
     'unique keys' => array(
@@ -202,6 +212,13 @@ function amcr_schema() {
     'description' => 'report elements',
     'fields' => array(
       'id' => array(
+        'description' => 'primary key',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
+      'element_id' => array(
         'description' => 'id field, primary key',
         'type' => 'varchar',
         'length' => '255',
@@ -264,6 +281,13 @@ function amcr_schema() {
     'description' => 'cotains reports metrics',
     'fields' => array(
       'id' => array(
+        'description' => 'primary key',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
+        'metric_id' => array(
         'description' => 'id field',
         'type' => 'varchar',
         'length' => '255',

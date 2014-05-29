@@ -44,7 +44,26 @@ class AmcrReportException extends Exception {
  */
 class AmcrReport {
 
+  /**
+   * Report suite id
+   *
+   * @var string
+   */
   protected $report_suite_id;
+
+  /**
+   * map of elements indexes and amcr_report_element primary keys
+   *
+   * @var array
+   */
+  protected $report_metric_ids;
+  /**
+   * map of metrics indexes and amcr_report_metric primary keys
+   *
+   * @var array
+   */
+  protected $report_element_ids;
+
   function __construct() {
     $this->report_suite_id = 'viamtviggycom';
     $this->marketing_client = AmcrMarketingClient::getInstance();
@@ -164,7 +183,22 @@ class AmcrReport {
     $insert->fields(array('report_suite', 'period', 'elements_id', 'metrics_id',
       'type', 'data_id', 'totals_id'));
     $insert->values($insert_data );
-    return $insert->execute();
+    $report_id = $insert->execute();
+
+    db_update('amcr_report_element_list')
+      ->condition('id', $elements_id)
+      ->fields(array('report_id' => $report_id))
+      ->execute();
+    db_update('amcr_report_metric_list')
+      ->condition('id', $metrics_id)
+      ->fields(array('report_id' => $report_id))
+      ->execute();
+    db_update('amcr_report_count_list')
+      ->condition('id', $totals_id)
+      ->fields(array('report_id' => $report_id))
+      ->execute();
+
+    return $report_id;
   }
 
 
@@ -185,19 +219,19 @@ class AmcrReport {
     $list_id = $insert->execute();
 
     $insert = db_insert('amcr_report_element');
-    $insert->fields(array('id', 'name', 'type', 'latency', 'current', 'list_id'));
+    $insert->fields(array('element_id', 'name', 'type', 'latency', 'current', 'list_id'));
     foreach($elements as $element) {
       $insert_data = array(
-        'id' => isset($element['id']) ? $element['id'] : null,
+        'element_id' => isset($element['id']) ? $element['id'] : null,
         'name' => isset($element['name']) ? $element['name'] : null,
         'type' => isset($element['type']) ? $element['type'] : null,
         'latency' => isset($element['latency']) ? $element['latency'] : null,
-        'current' => isset($element['current']) ? $element['current'] : null,
+        'current' => isset($element['current']) ? (int) $element['current'] : null,
         'list_id' => $list_id,
       );
       $insert->values($insert_data);
+      $this->report_element_ids[] = $insert->execute();
     }
-    $insert->execute();
 
     return $list_id;
   }
@@ -213,7 +247,28 @@ class AmcrReport {
    *
    */
   protected function saveMetricList($metrics) {
-    return 1;
+    $insert = db_insert('amcr_report_metric_list');
+    $insert->fields(array('report_id'));
+    $insert->values(array('report_id' => 0));
+    $list_id = $insert->execute();
+
+    $insert = db_insert('amcr_report_metric');
+    $insert->fields(array('metric_id', 'name', 'type', 'latency', 'current', 'list_id'));
+    foreach($metrics as $metric) {
+      $insert_data = array(
+        'metric_id' => isset($metric['id']) ? $metric['id'] : null,
+        'name' => isset($metric['name']) ? $metric['name'] : null,
+        'type' => isset($metric['type']) ? $metric['type'] : null,
+        'latency' => isset($metric['latency']) ? $metric['latency'] : null,
+        'current' => isset($metric['current']) ? (int) $metric['current'] : null,
+        'list_id' => $list_id,
+      );
+      $insert->values($insert_data);
+      $this->report_metric_ids[] = $insert->execute();
+    }
+
+
+    return $list_id;
   }
 
 
@@ -228,7 +283,25 @@ class AmcrReport {
    *
    */
   protected function saveCountList($counts) {
-    return 1;
+    $insert = db_insert('amcr_report_count_list');
+    $insert->fields(array('report_id'));
+    $insert->values(array('report_id' => 0));
+    $list_id = $insert->execute();
+
+    $insert = db_insert('amcr_report_count');
+    $insert->fields(array('list_id', 'value', 'metric_id'));
+    foreach($counts as $index => $value) {
+      $insert_data = array(
+        'value' => $value,
+        'metric_id' => isset($this->report_metric_ids[$index]) ? $this->report_metric_ids[$index] : null,
+        'list_id' => $list_id,
+      );
+      $insert->values($insert_data);
+    }
+
+    $insert->execute();
+
+    return $list_id;
   }
 
   /**
@@ -242,6 +315,36 @@ class AmcrReport {
    *
    */
   protected function saveReportDataList($data) {
-    return 1;
+    $insert = db_insert('amcr_report_data_list');
+    $insert->fields(array('report_id'));
+    $insert->values(array('report_id' => 0));
+    $list_id = $insert->execute();
+
+    $insert = db_insert('amcr_report_data');
+    $insert->fields(array('url', 'year', 'month', 'day', 'hour', 'counts_id',
+      'breakdown_id', 'name', 'list_id', 'element_id'));
+
+    foreach($data as $index => $item) {
+
+      $counts_id = !empty($item['counts']) ? $this->saveCountList($item['counts']) : null;
+      $breakdown_id = !empty($item['breakdown']) ? $this->saveReportDataList($item['breakdown']) : null;
+      $insert_data = array(
+        'name' => isset($item['name']) ? $item['name'] : null,
+        'url' => isset($item['url']) ? $item['url'] : null,
+        'year' => isset($item['year']) ? $item['year'] : null,
+        'month' => isset($item['month']) ? $item['month'] : null,
+        'day' => isset($item['day']) ? $item['day'] : null,
+        'hour' => isset($item['hour']) ? $item['hour'] : null,
+        'element_id' => isset($this->report_element_ids[$index]) ? $this->report_element_ids[$index] : null,
+        'list_id' => !empty($list_id) ? $list_id : null,
+        'counts_id' => !empty($counts_id) ? $counts_id : null,
+        'breakdown_id' => !empty($breakdown_id) ? $breakdown_id : null,
+      );
+      $insert->values($insert_data);
+    }
+
+    $insert->execute();
+
+    return $list_id;
   }
 }

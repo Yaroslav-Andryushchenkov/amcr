@@ -314,7 +314,7 @@ class AmcrReport {
    *  foreign key to amcr_report_data_list table
    *
    */
-  protected function saveReportDataList($data) {
+  protected function saveReportDataList($data, $depth=0) {
     $insert = db_insert('amcr_report_data_list');
     $insert->fields(array('report_id'));
     $insert->values(array('report_id' => 0));
@@ -327,7 +327,7 @@ class AmcrReport {
     foreach($data as $index => $item) {
 
       $counts_id = !empty($item['counts']) ? $this->saveCountList($item['counts']) : null;
-      $breakdown_id = !empty($item['breakdown']) ? $this->saveReportDataList($item['breakdown']) : null;
+      $breakdown_id = !empty($item['breakdown']) ? $this->saveReportDataList($item['breakdown'], $depth+1) : null;
       $insert_data = array(
         'name' => isset($item['name']) ? $item['name'] : null,
         'url' => isset($item['url']) ? $item['url'] : null,
@@ -335,7 +335,7 @@ class AmcrReport {
         'month' => isset($item['month']) ? $item['month'] : null,
         'day' => isset($item['day']) ? $item['day'] : null,
         'hour' => isset($item['hour']) ? $item['hour'] : null,
-        'element_id' => isset($this->report_element_ids[$index]) ? $this->report_element_ids[$index] : null,
+        'element_id' => isset($this->report_element_ids[$depth]) ? $this->report_element_ids[$depth] : null,
         'list_id' => !empty($list_id) ? $list_id : null,
         'counts_id' => !empty($counts_id) ? $counts_id : null,
         'breakdown_id' => !empty($breakdown_id) ? $breakdown_id : null,

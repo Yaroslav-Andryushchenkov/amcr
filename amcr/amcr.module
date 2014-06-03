@@ -16,6 +16,52 @@ function amcr_menu() {
     'expanded' => TRUE,
   );
 
+  $items['admin/config/services/amcr'] = array(
+    'title' => 'Adobe marketing cloud reports',
+    'description' => "Configure connection to Adobe marketing cloud and edit reports parameters.",
+    'page callback' => 'amcr_report_list',
+    'access arguments' => array('administer amcr'),
+    'weight' => 10,
+    'file' => 'amcr.admin.inc',
+  );
+  $items['admin/config/services/amcr/add/report'] = array(
+    'title' => 'Add report',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('amcr_form_report'),
+    'access arguments' => array('administer amcr'),
+    'type' => MENU_LOCAL_ACTION,
+    'file' => 'amcr.admin.inc',
+  );
+
+  $items['admin/config/services/amcr/remove/%report'] = array(
+    'title' => 'Remove report',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('amcr_admin_remove_report', 5),
+    'access arguments' => array('administer amcr'),
+    'file' => 'amcr.admin.inc',
+  );
+  $items['admin/config/services/amcr/edit/%report'] = array(
+    'title' => 'Edit report',
+    'page callback' => 'amcr_admin_edit_report',
+    'page arguments' => array(5),
+    'access arguments' => array('administer amcr'),
+    'file' => 'amcr.admin.inc',
+  );
+  $items['admin/config/services/amcr/list'] = array(
+    'title' => 'List',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
+  );
+  $items['admin/config/services/amcr/settings'] = array(
+    'title' => 'Settings',
+    'description' => 'Configure Adobe marketing cloud connection',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('amcr_admin_form'),
+    'access arguments' => array('administer amcr'),
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'amcr.admin.inc',
+  );
+
   return $items;
 }
 
@@ -27,5 +73,19 @@ function amcr_test_page() {
   $data_source = new AmcrReport;
   return $data_source->getData();
 }
+
+
+/**
+ * Implements hook_permission().
+ */
+function amcr_permission() {
+  return array(
+    'administer amcr ' => array(
+      'title' => t('Administer Adobe marketing cloud reports'),
+    ),
+  );
+}
+
+
 
 

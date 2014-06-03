@@ -396,6 +396,212 @@ function amcr_schema() {
     ),
   );
 
+  $schema['amcr_report_definition_element'] = array(
+    'description' => 'elements of report description',
+    'fields' => array(
+      'id' => array(
+        'description' => 'primary key',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
+      'element_id' => array(
+        'description' => 'id field',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+      ),
+      'classificaton' => array(
+        'description' => 'classification field',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => FALSE,
+      ),
+      'top' => array(
+        'description' => 'top field',
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+      'starting_with' => array(
+        'description' => 'startingWith field',
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+      'search_id' => array(
+        'description' => 'search_id foreign key to amcr_rd_search table',
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+      'selected' => array(
+        'description' => 'selected field',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => FALSE,
+      ),
+      'rd_id' => array(
+        'description' => 'foreign key to amcr_report_description',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'weight' => array(
+        'description' => 'used for sorting',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('id'),
+    'unique keys' => array(
+      'id' => array('id')
+    ),
+  );
+
+  $schema['amcr_report_definition_metric'] = array(
+    'description' => 'Report definition metrics',
+    'fields' => array(
+      'id' => array(
+        'description' => 'primary key',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
+      'metric_id' => array(
+        'description' => 'metric id',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+      ),
+      'rd_id' => array(
+        'description' => 'foreign key to amcr_report_description',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'weight' => array(
+        'description' => 'used for sorting',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('id'),
+    'unique keys' => array(
+      'id' => array('id')
+    ),
+  );
+
+  $schema['amcr_report_description'] = array(
+    'description' => 'TODO: please describe this table!',
+    'fields' => array(
+      'id' => array(
+        'description' => 'primary key',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
+      'name' => array(
+        'description' => 'It is shown in reports list (admin panel)',
+        'type' => 'varchar',
+        'length' => '100',
+        'not null' => TRUE,
+      ),
+      'description' => array(
+        'description' => 'It is displayed on report details page',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => FALSE,
+      ),
+      'report_suite_id' => array(
+        'description' => 'report suite id',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+      ),
+      'method' => array(
+        'description' => 'method (ranked, trended, overtime, realtime)',
+        'type' => 'varchar',
+        'length' => '50',
+        'not null' => TRUE,
+      ),
+      'date' => array(
+        'description' => 'date field',
+        'type' => 'varchar',
+        'length' => '20',
+        'not null' => FALSE,
+      ),
+      'date_from' => array(
+        'description' => 'dateFrom field',
+        'type' => 'varchar',
+        'length' => '20',
+        'not null' => FALSE,
+      ),
+      'date_to' => array(
+        'description' => 'dateTo field',
+        'type' => 'varchar',
+        'length' => '20',
+        'not null' => FALSE,
+      ),
+      'date_granularity' => array(
+        'description' => 'dateGranularity field',
+        'type' => 'varchar',
+        'length' => '20',
+        'not null' => FALSE,
+      ),
+      'period' => array(
+        'description' => 'Seconds. Tmeframe from the moment of report executing.',
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+      'update_frequency' => array(
+        'description' => 'Seconds. Report update period',
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+      'last_update' => array(
+        'description' => 'Last time report was updated',
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+      'locale' => array(
+        'description' => 'locale field',
+        'type' => 'varchar',
+        'length' => '10',
+        'not null' => FALSE,
+      ),
+      'sort_by' => array(
+        'description' => 'sorBy field',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => FALSE,
+      ),
+      'validate' => array(
+        'description' => 'validate field',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => FALSE,
+      ),
+      'anomaly_detection' => array(
+        'description' => 'anomalyDetection field',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => FALSE,
+      ),
+      'current_data' => array(
+        'description' => 'currentData field',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => FALSE,
+      ),
+    ),
+    'primary key' => array('id'),
+    'unique keys' => array(
+      'id' => array('id')
+    ),
+  );
+
+
   return $schema;
 }
 

@@ -42,85 +42,173 @@ function amcr_report_list() {
 }
 
 /**
- * Form constructor for adding and editing feed sources.
+ * Form constructor for adding and editing report config.
  *
- * @param $feed
- *   (optional) If editing a feed, the feed to edit as a PHP stdClass value; if
- *   adding a new feed, NULL. Defaults to NULL.
+ * @param $report
+ *   (optional) If editing a report, the report to edit as a PHP stdClass value; if
+ *   adding a new report, NULL. Defaults to NULL.
  *
  * @ingroup forms
- * @see aggregator_form_feed_validate()
- * @see aggregator_form_feed_submit()
+ * @see amcr_form_report_validate()
+ * @see amcr_form_report_submit()
  */
-/*
-function aggregator_form_feed($form, &$form_state, stdClass $feed = NULL) {
-  $period = drupal_map_assoc(array(900, 1800, 3600, 7200, 10800, 21600, 32400, 43200, 64800, 86400, 172800, 259200, 604800, 1209600, 2419200), 'format_interval');
-  $period[AGGREGATOR_CLEAR_NEVER] = t('Never');
 
-  $form['title'] = array('#type' => 'textfield',
+function amcr_form_report($form, &$form_state, stdClass $report = NULL) {
+
+  $methods = array('ranked' => 'Ranked report',
+    'trended' => 'Trended report',
+    'overtime' => 'Overtime report',
+    'realtime' => 'Real time report',
+  );
+
+  $metrics = array('pageviews' => 'Page views',
+    'uniquevisitors' => 'Unique visitors',
+  );
+
+  $form['name'] = array('#type' => 'textfield',
     '#title' => t('Title'),
-    '#default_value' => isset($feed->title) ? $feed->title : '',
+    '#default_value' => isset($report->name) ? $report->name : '',
     '#maxlength' => 255,
-    '#description' => t('The name of the feed (or the name of the website providing the feed).'),
+    '#description' => t('The name of the report. It is shown in list of reports.'),
     '#required' => TRUE,
   );
-  $form['url'] = array('#type' => 'textfield',
-    '#title' => t('URL'),
-    '#default_value' => isset($feed->url) ? $feed->url : '',
+  $form['description'] = array('#type' => 'textarea',
+    '#title' => t('Description'),
+    '#default_value' => isset($report->description) ? $report->description : '',
     '#maxlength' => NULL,
-    '#description' => t('The fully-qualified URL of the feed.'),
+    '#description' => t('Report Description. It is shown or report details page'),
     '#required' => TRUE,
   );
-  $form['refresh'] = array('#type' => 'select',
-    '#title' => t('Update interval'),
-    '#default_value' => isset($feed->refresh) ? $feed->refresh : 3600,
-    '#options' => $period,
-    '#description' => t('The length of time between feed updates. Requires a correctly configured <a href="@cron">cron maintenance task</a>.', array('@cron' => url('admin/reports/status'))),
+  $form['report_suite_id'] = array('#type' => 'textfield',
+    '#title' => t('Report suite id'),
+    '#default_value' => isset($report->report_suite_id) ? $report->report_suite_id : '',
+    '#maxlength' => NULL,
+    '#description' => t('Id of omniture report suite'),
+    '#required' => TRUE,
   );
-  $form['block'] = array('#type' => 'select',
-    '#title' => t('News items in block'),
-    '#default_value' => isset($feed->block) ? $feed->block : 5,
-    '#options' => drupal_map_assoc(array(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)),
-    '#description' => t("Drupal can make a block with the most recent news items of this feed. You can <a href=\"@block-admin\">configure blocks</a> to be displayed in the sidebar of your page. This setting lets you configure the number of news items to show in this feed's block. If you choose '0' this feed's block will be disabled.", array('@block-admin' => url('admin/structure/block'))),
+  $form['method'] = array('#type' => 'select',
+    '#title' => t('Report type'),
+    '#default_value' => isset($report->method) ? $report->method : 'ranked',
+    '#options' => $methods,
   );
 
-  // Handling of categories.
-  $options = array();
-  $values = array();
-  $categories = db_query('SELECT c.cid, c.title, f.fid FROM {aggregator_category} c LEFT JOIN {aggregator_category_feed} f ON c.cid = f.cid AND f.fid = :fid ORDER BY title', array(':fid' => isset($feed->fid) ? $feed->fid : NULL));
-  foreach ($categories as $category) {
-    $options[$category->cid] = check_plain($category->title);
-    if ($category->fid) $values[] = $category->cid;
-  }
 
-  if ($options) {
-    $form['category'] = array(
-      '#type' => 'checkboxes',
-      '#title' => t('Categorize news items'),
-      '#default_value' => $values,
-      '#options' => $options,
-      '#description' => t('New feed items are automatically filed in the checked categories.'),
+  $result = db_query('SELECT id, element_id, weight FROM {amcr_report_definition_element} ORDER BY weight ASC');
+
+  $form['elements']['#title'] = t('Elements');
+  $form['elements']['#description'] = t('A list of elements that breaks down '.
+    '(organizes) the metrics data in the report');
+
+  foreach ($result as $item) {
+    $form['elements'][$item->id] = array(
+      'name' => array(
+        '#markup' => check_plain($item->element_id),
+      ),
+      'weight' => array(
+        '#type' => 'weight',
+        '#title' => t('Weight'),
+        '#default_value' => $item->weight,
+        '#delta' => 10,
+        '#title_display' => 'invisible',
+      ),
     );
   }
+
+  $form['date_from'] = array('#type' => 'date',
+    '#title' => t('Date from'),
+    '#default_value' => isset($report->date_from) ? $report->date_from : '',
+    '#maxlength' => NULL,
+    '#description' => t('Data is analysed since \'Date from \' till \'Date to\'. It is '.
+      'used if \'Period\' is not specified '),
+    '#required' => FALSE,
+  );
+  $form['date_to'] = array('#type' => 'date',
+    '#title' => t('Date to'),
+    '#default_value' => isset($report->date_to) ? $report->date_to : '',
+    '#maxlength' => NULL,
+    '#description' => t('Data is analysed since \'Date from \' till \'Date to\'. It is '.
+      'used if \'Period\' is not specified '),
+    '#required' => FALSE,
+  );
+  $form['period'] = array('#type' => 'textfield',
+    '#title' => t('Period'),
+    '#default_value' => isset($report->period) ? $report->period / 3600 : '',
+    '#maxlength' => NULL,
+    '#size' => 5,
+    '#description' => t('Period in hours for getting data. It is counted for the' .
+      ' moment report execution.'),
+    '#required' => FALSE,
+  );
+  $form['order_by'] = array('#type' => 'select',
+    '#title' => t('Order by'),
+    '#default_value' => isset($report->order_by) ? $report->order_by : '',
+    '#options' => $metrics,
+  );
 
   $form['actions'] = array('#type' => 'actions');
   $form['actions']['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Save'),
   );
-  if (!empty($feed->fid)) {
+  if (!empty($report->id)) {
     $form['actions']['delete'] = array(
       '#type' => 'submit',
       '#value' => t('Delete'),
     );
     $form['fid'] = array(
       '#type' => 'hidden',
-      '#value' => $feed->fid,
+      '#value' => $feed->id,
     );
   }
 
   return $form;
 }
+
+
+/**
+ * Theme callback for the  amcr_form_report form.
+ *
+ * The theme callback will format the $form data structure into a table and
+ * add our tabledrag functionality.
+ */
+function theme_amcr_form_report($variables) {
+  $form = $variables['form'];
+  $rows = array();
+  foreach (element_children($form['elements']) as $id) {
+    $form['elements'][$id]['weight']['#attributes']['class'] = array('amcr-element-weight');
+
+    $rows[] = array(
+      'data' => array(
+        drupal_render($form['elements'][$id]['name']),
+        drupal_render($form['elements'][$id]['weight']),
+      ),
+      'class' => array('draggable'),
+    );
+  }
+
+  $output = drupal_render($form['name']);
+  unset($form['name']);
+  $output .= drupal_render($form['description']);
+  unset($form['description']);
+  $output .= drupal_render($form['report_suite_id']);
+  unset($form['report_suite_id']);
+  $output .= drupal_render($form['method']);
+  unset($form['method']);
+  $header = array(t('Name'), t('Weight'));
+
+  $table_id = 'amcr-elements-table';
+  $output .= theme('table', array(
+    'header' => $header,
+    'rows' => $rows,
+    'attributes' => array('id' => $table_id),
+  ));
+
+  $output .= drupal_render_children($form);
+  drupal_add_tabledrag($table_id, 'order', 'sibling', 'amcr-element-weight');
+
+  return $output;
+}
+
 
 /**
  * Form validation handler for aggregator_form_feed().

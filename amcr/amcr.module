@@ -24,7 +24,7 @@ function amcr_menu() {
     'weight' => 10,
     'file' => 'amcr.admin.inc',
   );
-  $items['admin/config/services/amcr/add/report'] = array(
+  $items['admin/config/services/amcr/add'] = array(
     'title' => 'Add report',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('amcr_form_report'),
@@ -87,5 +87,15 @@ function amcr_permission() {
 }
 
 
-
+/**
+ * Implements hook_theme().
+ */
+function amcr_theme() {
+  return array(
+    'amcr_form_report' => array(
+      'render element' => 'form',
+      'file' => 'amcr.admin.inc',
+    ),
+  );
+}
 

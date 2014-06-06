@@ -92,7 +92,7 @@ function amcr_permission() {
  */
 function amcr_theme() {
   return array(
-    'amcr_form_report' => array(
+    'amcr_element_form' => array(
       'render element' => 'form',
       'file' => 'amcr.admin.inc',
     ),

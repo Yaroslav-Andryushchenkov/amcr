@@ -98,20 +98,10 @@ function amcr_form_report($form, &$form_state, stdClass $report = NULL) {
   $form['elements']['#title'] = t('Elements');
   $form['elements']['#description'] = t('A list of elements that breaks down '.
     '(organizes) the metrics data in the report');
+  $form['elements']['#theme'] = 'amcr_element_form';
 
   foreach ($result as $item) {
-    $form['elements'][$item->id] = array(
-      'name' => array(
-        '#markup' => check_plain($item->element_id),
-      ),
-      'weight' => array(
-        '#type' => 'weight',
-        '#title' => t('Weight'),
-        '#default_value' => $item->weight,
-        '#delta' => 10,
-        '#title_display' => 'invisible',
-      ),
-    );
+    $form['elements']['items'][$item->id] = _amcr_element_form($item);
   }
 
   $form['date_from'] = array('#type' => 'date',
@@ -164,40 +154,54 @@ function amcr_form_report($form, &$form_state, stdClass $report = NULL) {
   return $form;
 }
 
+/*
+ * Generates form structure for element item
+ *
+ * @param $item
+ *  report element
+ */
+function _amcr_element_form($item = NULL) {
+  $form = array(
+    'name' => array(
+      '#markup' => check_plain($item->element_id),
+    ),
+    'weight' => array(
+      '#type' => 'weight',
+      '#title' => t('Weight'),
+      '#default_value' => $item->weight,
+      '#delta' => 10,
+      '#title_display' => 'invisible',
+    ),
+  );
+
+  return $form;
+}
+
 
 /**
- * Theme callback for the  amcr_form_report form.
+ * Theme callback for the  report elements form item.
  *
- * The theme callback will format the $form data structure into a table and
+ * The theme callback will format the elements data structure into a table and
  * add our tabledrag functionality.
  */
-function theme_amcr_form_report($variables) {
+function theme_amcr_element_form($variables) {
   $form = $variables['form'];
   $rows = array();
-  foreach (element_children($form['elements']) as $id) {
-    $form['elements'][$id]['weight']['#attributes']['class'] = array('amcr-element-weight');
+  foreach (element_children($form['items']) as $id) {
+    $form['items'][$id]['weight']['#attributes']['class'] = array('amcr-element-weight');
 
     $rows[] = array(
       'data' => array(
-        drupal_render($form['elements'][$id]['name']),
-        drupal_render($form['elements'][$id]['weight']),
+        drupal_render($form['items'][$id]['name']),
+        drupal_render($form['items'][$id]['weight']),
       ),
       'class' => array('draggable'),
     );
   }
 
-  $output = drupal_render($form['name']);
-  unset($form['name']);
-  $output .= drupal_render($form['description']);
-  unset($form['description']);
-  $output .= drupal_render($form['report_suite_id']);
-  unset($form['report_suite_id']);
-  $output .= drupal_render($form['method']);
-  unset($form['method']);
   $header = array(t('Name'), t('Weight'));
-
   $table_id = 'amcr-elements-table';
-  $output .= theme('table', array(
+  $output = theme('table', array(
     'header' => $header,
     'rows' => $rows,
     'attributes' => array('id' => $table_id),

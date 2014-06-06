@@ -27,7 +27,7 @@ function amcr_menu() {
   $items['admin/config/services/amcr/add'] = array(
     'title' => 'Add report',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('amcr_form_report'),
+    'page arguments' => array('amcr_report_form'),
     'access arguments' => array('administer amcr'),
     'type' => MENU_LOCAL_ACTION,
     'file' => 'amcr.admin.inc',

@@ -53,7 +53,7 @@ function amcr_report_list() {
  * @see amcr_form_report_submit()
  */
 
-function amcr_form_report($form, &$form_state, stdClass $report = NULL) {
+function amcr_report_form($form, &$form_state, stdClass $report = NULL) {
 
   $methods = array('ranked' => 'Ranked report',
     'trended' => 'Trended report',
@@ -95,14 +95,57 @@ function amcr_form_report($form, &$form_state, stdClass $report = NULL) {
 
   $result = db_query('SELECT id, element_id, weight FROM {amcr_report_definition_element} ORDER BY weight ASC');
 
+  if (isset($form_state['elements_count'])) {
+    $elements_count = $form_state['elements_count'];
+  }
+  else {
+    $elements_count = max(2, empty($report->elements->items) ? 2 : count($report->elements->items));
+  }
+
   $form['elements']['#title'] = t('Elements');
+  $form['elements']['#tree'] = true;
   $form['elements']['#description'] = t('A list of elements that breaks down '.
     '(organizes) the metrics data in the report');
   $form['elements']['#theme'] = 'amcr_element_form';
+  $form['elements']['#prefix'] = '<div id="amcr-elements-wrapper">';
+  $form['elements']['#suffix'] = '</div>';
 
+  $delta = 0;
+  $weight = 0;
   foreach ($result as $item) {
     $form['elements']['items'][$item->id] = _amcr_element_form($item);
+    $delta++;
+    if($item->weight > $weight) {
+      $weight = $item->weight;
+    }
   }
+
+  $existing_delta = $delta;
+  for ($delta; $delta < $elements_count; $delta++) {
+    $key = 'new:' . ($delta - $existing_delta);
+    $weight++;
+    $item = new stdClass();
+    $item->weight = $weight;
+    $form['elements']['items'][$key] = _amcr_element_form($item);
+  }
+
+  // We name our button 'poll_more' to avoid conflicts with other modules using
+  // Ajax-enabled buttons with the id 'more'.
+  $form['elements']['add'] = array(
+    '#type' => 'submit',
+    '#value' => t('Add element'),
+    '#attributes' => array(
+      'title' => t("If the amount of boxes above isn't enough, click here to add more elements."),
+    ),
+    '#weight' => 1,
+    '#limit_validation_errors' => array(array('choice')),
+    '#submit' => array('amcr_add_element_submit'),
+    '#ajax' => array(
+      'callback' => 'amcr_element_js',
+      'wrapper' => 'amcr-elements-wrapper',
+      'effect' => 'fade',
+    ),
+  );
 
   $form['date_from'] = array('#type' => 'date',
     '#title' => t('Date from'),
@@ -145,13 +188,38 @@ function amcr_form_report($form, &$form_state, stdClass $report = NULL) {
       '#type' => 'submit',
       '#value' => t('Delete'),
     );
-    $form['fid'] = array(
+    $form['id'] = array(
       '#type' => 'hidden',
-      '#value' => $feed->id,
+      '#value' => $report->id,
     );
   }
 
   return $form;
+}
+
+
+/**
+ * Ajax callback in response to new element added to the form.
+ *
+ * This returns the new page content to replace the page content made obsolete
+ * by the form submission.
+ *
+ * @see amcr_add_element_submit()
+ */
+function amcr_element_js($form, $form_state) {
+  return $form['elements'];
+}
+
+
+function amcr_add_element_submit($form, &$form_state) {
+  if ($form_state['values']['add']) {
+    $n = $_GET['q'] == 'system/ajax' ? 1 : 5;
+    $form_state['elements_count'] = count($form_state['values']['elements']) + $n;
+  }
+
+//  $form_state['node']->choice = array_values($form_state['values']['choice']);
+  unset($form_state['input']['elements']);
+  $form_state['rebuild'] = TRUE;
 }
 
 /*
@@ -162,15 +230,19 @@ function amcr_form_report($form, &$form_state, stdClass $report = NULL) {
  */
 function _amcr_element_form($item = NULL) {
   $form = array(
-    'name' => array(
-      '#markup' => check_plain($item->element_id),
+    '#tree' => true,
+    'id' => array(
+      '#type' => 'textfield',
+      '#default_value' => isset($item->element_id) ? $item->element_id : '',
+      '#maxlength' => 100,
+      '#parents' => array('elements', $item->element_id, 'id'),
     ),
     'weight' => array(
       '#type' => 'weight',
       '#title' => t('Weight'),
       '#default_value' => $item->weight,
-      '#delta' => 10,
       '#title_display' => 'invisible',
+      '#parents' => array('elements', $item->element_id, 'weight'),
     ),
   );
 
@@ -192,14 +264,14 @@ function theme_amcr_element_form($variables) {
 
     $rows[] = array(
       'data' => array(
-        drupal_render($form['items'][$id]['name']),
+        drupal_render($form['items'][$id]['id']),
         drupal_render($form['items'][$id]['weight']),
       ),
       'class' => array('draggable'),
     );
   }
 
-  $header = array(t('Name'), t('Weight'));
+  $header = array(t('Element ID'), t('Weight'));
   $table_id = 'amcr-elements-table';
   $output = theme('table', array(
     'header' => $header,

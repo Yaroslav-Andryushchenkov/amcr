@@ -138,13 +138,13 @@ function amcr_report_form($form, &$form_state, stdClass $report = NULL) {
       'title' => t("If the amount of boxes above isn't enough, click here to add more elements."),
     ),
     '#weight' => 1,
-    '#limit_validation_errors' => array(array('choice')),
     '#submit' => array('amcr_add_element_submit'),
     '#ajax' => array(
       'callback' => 'amcr_element_js',
       'wrapper' => 'amcr-elements-wrapper',
       'effect' => 'fade',
     ),
+    '#limit_validation_errors' => array(array('elements')),
   );
 
   $form['date_from'] = array('#type' => 'date',
@@ -212,9 +212,9 @@ function amcr_element_js($form, $form_state) {
 
 
 function amcr_add_element_submit($form, &$form_state) {
-  if ($form_state['values']['add']) {
+  if ($form_state['values']['elements']['add']) {
     $n = $_GET['q'] == 'system/ajax' ? 1 : 5;
-    $form_state['elements_count'] = count($form_state['values']['elements']) + $n;
+    $form_state['elements_count'] = count($form_state['values']['elements']['items']) + $n;
   }
 
 //  $form_state['node']->choice = array_values($form_state['values']['choice']);
@@ -235,14 +235,14 @@ function _amcr_element_form($item = NULL) {
       '#type' => 'textfield',
       '#default_value' => isset($item->element_id) ? $item->element_id : '',
       '#maxlength' => 100,
-      '#parents' => array('elements', $item->element_id, 'id'),
+      '#tree' => true,
     ),
     'weight' => array(
       '#type' => 'weight',
       '#title' => t('Weight'),
       '#default_value' => $item->weight,
       '#title_display' => 'invisible',
-      '#parents' => array('elements', $item->element_id, 'weight'),
+      '#tree' => true,
     ),
   );
 

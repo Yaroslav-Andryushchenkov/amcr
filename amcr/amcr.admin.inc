@@ -93,6 +93,8 @@ function amcr_report_form($form, &$form_state, stdClass $report = NULL) {
   );
 
 
+  /* Elements list */
+
   $result = db_query('SELECT id, element_id, weight FROM {amcr_report_definition_element} ORDER BY weight ASC');
 
   if (isset($form_state['elements_count'])) {
@@ -129,8 +131,6 @@ function amcr_report_form($form, &$form_state, stdClass $report = NULL) {
     $form['elements']['items'][$key] = _amcr_element_form($item);
   }
 
-  // We name our button 'poll_more' to avoid conflicts with other modules using
-  // Ajax-enabled buttons with the id 'more'.
   $form['elements']['add'] = array(
     '#type' => 'submit',
     '#value' => t('Add element'),
@@ -146,6 +146,65 @@ function amcr_report_form($form, &$form_state, stdClass $report = NULL) {
     ),
     '#limit_validation_errors' => array(array('elements')),
   );
+
+
+  /* End of elements list* /
+
+  /* Metrics list */
+  $result = db_query('SELECT id, metric_id, weight FROM {amcr_report_definition_metric} ORDER BY weight ASC');
+
+  if (isset($form_state['metrics_count'])) {
+    $metrics_count = $form_state['metrics_count'];
+  }
+  else {
+    $metrics_count = max(2, empty($report->metrics->items) ? 2 : count($report->metrics->items));
+  }
+
+  $form['metrics']['#title'] = t('Metrics');
+  $form['metrics']['#tree'] = true;
+  $form['metrics']['#theme'] = 'amcr_metric_form';
+  $form['metrics']['#prefix'] = '<div id="amcr-metrics-wrapper">';
+  $form['metrics']['#suffix'] = '</div>';
+
+  $delta = 0;
+  $weight = 0;
+  foreach ($result as $item) {
+    $form['metrics']['items'][$item->id] = _amcr_metric_form($item);
+    $delta++;
+    if($item->weight > $weight) {
+      $weight = $item->weight;
+    }
+  }
+
+  $existing_delta = $delta;
+  for ($delta; $delta < $metrics_count; $delta++) {
+    $key = 'new:' . ($delta - $existing_delta);
+    $weight++;
+    $item = new stdClass();
+    $item->weight = $weight;
+    $form['metrics']['items'][$key] = _amcr_metric_form($item);
+  }
+
+  $form['metrics']['add'] = array(
+    '#type' => 'submit',
+    '#value' => t('Add metric'),
+    '#attributes' => array(
+      'title' => t("If the amount of boxes above isn't enough, click here to add more metrics."),
+    ),
+    '#weight' => 1,
+    '#submit' => array('amcr_add_metric_submit'),
+    '#ajax' => array(
+      'callback' => 'amcr_metric_js',
+      'wrapper' => 'amcr-metrics-wrapper',
+      'effect' => 'fade',
+    ),
+    '#limit_validation_errors' => array(array('metrics')),
+  );
+  /* End of metrics list */
+
+
+
+
 
   $form['date_from'] = array('#type' => 'date',
     '#title' => t('Date from'),
@@ -210,15 +269,42 @@ function amcr_element_js($form, $form_state) {
   return $form['elements'];
 }
 
+/**
+ * Ajax callback in response to new metric added to the form.
+ *
+ * This returns the new page content to replace the page content made obsolete
+ * by the form submission.
+ *
+ * @see amcr_add_metric_submit()
+ */
+function amcr_metric_js($form, $form_state) {
+  return $form['metrics'];
+}
 
+/**
+ * Implements 'Add element' submit handler
+ */
 function amcr_add_element_submit($form, &$form_state) {
   if ($form_state['values']['elements']['add']) {
     $n = $_GET['q'] == 'system/ajax' ? 1 : 5;
     $form_state['elements_count'] = count($form_state['values']['elements']['items']) + $n;
   }
 
-//  $form_state['node']->choice = array_values($form_state['values']['choice']);
   unset($form_state['input']['elements']);
+  $form_state['rebuild'] = TRUE;
+}
+
+
+/**
+ * Implements 'Add metric' submit handler
+ */
+function amcr_add_metric_submit($form, &$form_state) {
+  if ($form_state['values']['metrics']['add']) {
+    $n = $_GET['q'] == 'system/ajax' ? 1 : 5;
+    $form_state['metrics_count'] = count($form_state['values']['metrics']['items']) + $n;
+  }
+
+  unset($form_state['input']['metrics']);
   $form_state['rebuild'] = TRUE;
 }
 
@@ -230,10 +316,35 @@ function amcr_add_element_submit($form, &$form_state) {
  */
 function _amcr_element_form($item = NULL) {
   $form = array(
-    '#tree' => true,
     'id' => array(
       '#type' => 'textfield',
       '#default_value' => isset($item->element_id) ? $item->element_id : '',
+      '#maxlength' => 100,
+    ),
+    'weight' => array(
+      '#type' => 'weight',
+      '#title' => t('Weight'),
+      '#default_value' => $item->weight,
+      '#title_display' => 'invisible',
+    ),
+  );
+
+  return $form;
+}
+
+
+/*
+ * Generates form structure for metric item
+ *
+ * @param $item
+ *  report metric
+ */
+function _amcr_metric_form($item = NULL) {
+  $form = array(
+    '#tree' => true,
+    'id' => array(
+      '#type' => 'textfield',
+      '#default_value' => isset($item->metric_id) ? $item->metric_id : '',
       '#maxlength' => 100,
       '#tree' => true,
     ),
@@ -249,12 +360,11 @@ function _amcr_element_form($item = NULL) {
   return $form;
 }
 
-
 /**
  * Theme callback for the  report elements form item.
  *
  * The theme callback will format the elements data structure into a table and
- * add our tabledrag functionality.
+ * add  tabledrag functionality.
  */
 function theme_amcr_element_form($variables) {
   $form = $variables['form'];
@@ -281,6 +391,42 @@ function theme_amcr_element_form($variables) {
 
   $output .= drupal_render_children($form);
   drupal_add_tabledrag($table_id, 'order', 'sibling', 'amcr-element-weight');
+
+  return $output;
+}
+
+
+/**
+ * Theme callback for the  report metrics form item.
+ *
+ * The theme callback will format the metrics data structure into a table and
+ * add tabledrag functionality.
+ */
+function theme_amcr_metric_form($variables) {
+  $form = $variables['form'];
+  $rows = array();
+  foreach (element_children($form['items']) as $id) {
+    $form['items'][$id]['weight']['#attributes']['class'] = array('amcr-metric-weight');
+
+    $rows[] = array(
+      'data' => array(
+        drupal_render($form['items'][$id]['id']),
+        drupal_render($form['items'][$id]['weight']),
+      ),
+      'class' => array('draggable'),
+    );
+  }
+
+  $header = array(t('Metric ID'), t('Weight'));
+  $table_id = 'amcr-metrics-table';
+  $output = theme('table', array(
+    'header' => $header,
+    'rows' => $rows,
+    'attributes' => array('id' => $table_id),
+  ));
+
+  $output .= drupal_render_children($form);
+  drupal_add_tabledrag($table_id, 'order', 'sibling', 'amcr-metric-weight');
 
   return $output;
 }

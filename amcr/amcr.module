@@ -96,6 +96,10 @@ function amcr_theme() {
       'render element' => 'form',
       'file' => 'amcr.admin.inc',
     ),
+    'amcr_metric_form' => array(
+      'render element' => 'form',
+      'file' => 'amcr.admin.inc',
+    ),
   );
 }
 

@@ -61,10 +61,6 @@ function amcr_report_form($form, &$form_state, stdClass $report = NULL) {
     'realtime' => 'Real time report',
   );
 
-  $metrics = array('pageviews' => 'Page views',
-    'uniquevisitors' => 'Unique visitors',
-  );
-
   $form['name'] = array('#type' => 'textfield',
     '#title' => t('Title'),
     '#default_value' => isset($report->name) ? $report->name : '',
@@ -92,118 +88,11 @@ function amcr_report_form($form, &$form_state, stdClass $report = NULL) {
     '#options' => $methods,
   );
 
+  $form['elements'] = _amcr_elements_list($form_state,
+    !empty($report->elements) ? $report->elements : array());
 
-  /* Elements list */
-
-  $result = db_query('SELECT id, element_id, weight FROM {amcr_report_definition_element} ORDER BY weight ASC');
-
-  if (isset($form_state['elements_count'])) {
-    $elements_count = $form_state['elements_count'];
-  }
-  else {
-    $elements_count = max(2, empty($report->elements->items) ? 2 : count($report->elements->items));
-  }
-
-  $form['elements']['#title'] = t('Elements');
-  $form['elements']['#tree'] = true;
-  $form['elements']['#description'] = t('A list of elements that breaks down '.
-    '(organizes) the metrics data in the report');
-  $form['elements']['#theme'] = 'amcr_element_form';
-  $form['elements']['#prefix'] = '<div id="amcr-elements-wrapper">';
-  $form['elements']['#suffix'] = '</div>';
-
-  $delta = 0;
-  $weight = 0;
-  foreach ($result as $item) {
-    $form['elements']['items'][$item->id] = _amcr_element_form($item);
-    $delta++;
-    if($item->weight > $weight) {
-      $weight = $item->weight;
-    }
-  }
-
-  $existing_delta = $delta;
-  for ($delta; $delta < $elements_count; $delta++) {
-    $key = 'new:' . ($delta - $existing_delta);
-    $weight++;
-    $item = new stdClass();
-    $item->weight = $weight;
-    $form['elements']['items'][$key] = _amcr_element_form($item);
-  }
-
-  $form['elements']['add'] = array(
-    '#type' => 'submit',
-    '#value' => t('Add element'),
-    '#attributes' => array(
-      'title' => t("If the amount of boxes above isn't enough, click here to add more elements."),
-    ),
-    '#weight' => 1,
-    '#submit' => array('amcr_add_element_submit'),
-    '#ajax' => array(
-      'callback' => 'amcr_element_js',
-      'wrapper' => 'amcr-elements-wrapper',
-      'effect' => 'fade',
-    ),
-    '#limit_validation_errors' => array(array('elements')),
-  );
-
-
-  /* End of elements list* /
-
-  /* Metrics list */
-  $result = db_query('SELECT id, metric_id, weight FROM {amcr_report_definition_metric} ORDER BY weight ASC');
-
-  if (isset($form_state['metrics_count'])) {
-    $metrics_count = $form_state['metrics_count'];
-  }
-  else {
-    $metrics_count = max(2, empty($report->metrics->items) ? 2 : count($report->metrics->items));
-  }
-
-  $form['metrics']['#title'] = t('Metrics');
-  $form['metrics']['#tree'] = true;
-  $form['metrics']['#theme'] = 'amcr_metric_form';
-  $form['metrics']['#prefix'] = '<div id="amcr-metrics-wrapper">';
-  $form['metrics']['#suffix'] = '</div>';
-
-  $delta = 0;
-  $weight = 0;
-  foreach ($result as $item) {
-    $form['metrics']['items'][$item->id] = _amcr_metric_form($item);
-    $delta++;
-    if($item->weight > $weight) {
-      $weight = $item->weight;
-    }
-  }
-
-  $existing_delta = $delta;
-  for ($delta; $delta < $metrics_count; $delta++) {
-    $key = 'new:' . ($delta - $existing_delta);
-    $weight++;
-    $item = new stdClass();
-    $item->weight = $weight;
-    $form['metrics']['items'][$key] = _amcr_metric_form($item);
-  }
-
-  $form['metrics']['add'] = array(
-    '#type' => 'submit',
-    '#value' => t('Add metric'),
-    '#attributes' => array(
-      'title' => t("If the amount of boxes above isn't enough, click here to add more metrics."),
-    ),
-    '#weight' => 1,
-    '#submit' => array('amcr_add_metric_submit'),
-    '#ajax' => array(
-      'callback' => 'amcr_metric_js',
-      'wrapper' => 'amcr-metrics-wrapper',
-      'effect' => 'fade',
-    ),
-    '#limit_validation_errors' => array(array('metrics')),
-  );
-  /* End of metrics list */
-
-
-
+  $form['metrics'] = _amcr_metrics_list($form_state,
+    !empty($report->metrics) ? $report->metrics : array());
 
 
   $form['date_from'] = array('#type' => 'date',
@@ -234,7 +123,7 @@ function amcr_report_form($form, &$form_state, stdClass $report = NULL) {
   $form['order_by'] = array('#type' => 'select',
     '#title' => t('Order by'),
     '#default_value' => isset($report->order_by) ? $report->order_by : '',
-    '#options' => $metrics,
+    '#options' => array('pageviews' => 'Page views'),
   );
 
   $form['actions'] = array('#type' => 'actions');
@@ -334,6 +223,148 @@ function _amcr_element_form($item = NULL) {
 
 
 /*
+ * Generates form structure for elements list
+ *
+ * @param &$form_state
+ *  the function change $form_state['elements_count'] parameter
+ * @param $report_elements
+ *  $report->elements object restored from db
+ *
+ * @return
+ *  $form['elements'] structure
+ */
+function _amcr_elements_list(&$form_state = NULL, $report_elements) {
+
+  $form = array();
+  $result = db_query('SELECT id, element_id, weight FROM {amcr_report_definition_element} ORDER BY weight ASC');
+
+  if (isset($form_state['elements_count'])) {
+    $elements_count = $form_state['elements_count'];
+  }
+  else {
+    $elements_count = max(2, empty($report_elements->items) ? 2 : count($report_elements->items));
+  }
+
+  $form['#title'] = t('Elements');
+  $form['#tree'] = true;
+  $form['#description'] = t('A list of elements that breaks down '.
+    '(organizes) the metrics data in the report');
+  $form['#theme'] = 'amcr_element_form';
+  $form['#prefix'] = '<div id="amcr-elements-wrapper">';
+  $form['#suffix'] = '</div>';
+
+  $delta = 0;
+  $weight = 0;
+  foreach ($result as $item) {
+    $form['items'][$item->id] = _amcr_element_form($item);
+    $delta++;
+    if($item->weight > $weight) {
+      $weight = $item->weight;
+    }
+  }
+
+  $existing_delta = $delta;
+  for ($delta; $delta < $elements_count; $delta++) {
+    $key = 'new:' . ($delta - $existing_delta);
+    $weight++;
+    $item = new stdClass();
+    $item->weight = $weight;
+    $form['items'][$key] = _amcr_element_form($item);
+  }
+
+  $form['add'] = array(
+    '#type' => 'submit',
+    '#value' => t('Add element'),
+    '#attributes' => array(
+      'title' => t("If the amount of boxes above isn't enough, click here to add more elements."),
+    ),
+    '#weight' => 1,
+    '#submit' => array('amcr_add_element_submit'),
+    '#ajax' => array(
+      'callback' => 'amcr_element_js',
+      'wrapper' => 'amcr-elements-wrapper',
+      'effect' => 'fade',
+    ),
+    '#limit_validation_errors' => array(array('elements')),
+  );
+
+  return $form;
+}
+
+
+/*
+ * Generates form structure for metrics list
+ *
+ * @param &$form_state
+ *  the function change $form_state['metrics_count'] parameter
+ * @param $report_metrics
+ *  $report->metrics object restored from db
+ *
+ * @return
+ *  $form['metrics'] structure
+ */
+function _amcr_metrics_list(&$form_state = NULL, $report_metrics) {
+
+  $form = array();
+  $result = db_query('SELECT id, metric_id, weight FROM {amcr_report_definition_metric} ORDER BY weight ASC');
+
+  if (isset($form_state['metrics_count'])) {
+    $metrics_count = $form_state['metrics_count'];
+  }
+  else {
+    $metrics_count = max(2, empty($report_metrics->items) ? 2 : count($report_metrics->items));
+  }
+
+  $form['#title'] = t('Metrics');
+  $form['#description'] = 'A list of the events to include in the report.'
+    .' A report must specify at least one metric (Ranked/Overtime reports'
+    .' support one or more metrics reportDefinitionMetricList metrics.'
+    .' Trended reports support only one metric.)';
+  $form['#tree'] = true;
+  $form['#theme'] = 'amcr_metric_form';
+  $form['#prefix'] = '<div id="amcr-metrics-wrapper">';
+  $form['#suffix'] = '</div>';
+
+  $delta = 0;
+  $weight = 0;
+  foreach ($result as $item) {
+    $form['items'][$item->id] = _amcr_metric_form($item);
+    $delta++;
+    if($item->weight > $weight) {
+      $weight = $item->weight;
+    }
+  }
+
+  $existing_delta = $delta;
+  for ($delta; $delta < $metrics_count; $delta++) {
+    $key = 'new:' . ($delta - $existing_delta);
+    $weight++;
+    $item = new stdClass();
+    $item->weight = $weight;
+    $form['items'][$key] = _amcr_metric_form($item);
+  }
+
+  $form['add'] = array(
+    '#type' => 'submit',
+    '#value' => t('Add metric'),
+    '#attributes' => array(
+      'title' => t("If the amount of boxes above isn't enough, click here to add more metrics."),
+    ),
+    '#weight' => 1,
+    '#submit' => array('amcr_add_metric_submit'),
+    '#ajax' => array(
+      'callback' => 'amcr_metric_js',
+      'wrapper' => 'amcr-metrics-wrapper',
+      'effect' => 'fade',
+    ),
+    '#limit_validation_errors' => array(array('metrics')),
+  );
+
+  return $form;
+}
+
+
+/*
  * Generates form structure for metric item
  *
  * @param $item
@@ -381,14 +412,15 @@ function theme_amcr_element_form($variables) {
     );
   }
 
+  $output = '<label>' . $form['#title'] . '</label>';
   $header = array(t('Element ID'), t('Weight'));
   $table_id = 'amcr-elements-table';
-  $output = theme('table', array(
+  $output .= theme('table', array(
     'header' => $header,
     'rows' => $rows,
     'attributes' => array('id' => $table_id),
   ));
-
+  $output .= '<div class="description">' . $form['#description'] . '</div>';
   $output .= drupal_render_children($form);
   drupal_add_tabledrag($table_id, 'order', 'sibling', 'amcr-element-weight');
 
@@ -419,12 +451,13 @@ function theme_amcr_metric_form($variables) {
 
   $header = array(t('Metric ID'), t('Weight'));
   $table_id = 'amcr-metrics-table';
-  $output = theme('table', array(
+  $output = '<label>' . $form['#title'] . '</label>';
+  $output .= theme('table', array(
     'header' => $header,
     'rows' => $rows,
     'attributes' => array('id' => $table_id),
   ));
-
+  $output .= '<div class="description">' . $form['#description'] . '</div>';
   $output .= drupal_render_children($form);
   drupal_add_tabledrag($table_id, 'order', 'sibling', 'amcr-metric-weight');
 

@@ -40,6 +40,153 @@ class AmcrReportException extends Exception {
 }
 
 /**
+ * Implements api to work with report config
+ */
+class AmcrReportConfig {
+
+  /**
+   * Name that is shown in admin panel report list
+   * can not be null
+   * @var string
+   */
+  public $name;
+
+  /**
+   * Detailed description for report settings page
+   *
+   * @var string
+   */
+  public $description;
+
+  /**
+   * Omniture report suite id. Can not be null
+   *
+   * @var string
+   */
+  public $report_suite_id;
+
+  /**
+   * Report method (ranked, trended, overtime, realtime)
+   * @var string
+   */
+  public $method;
+
+  /**
+   * Start date of data analysis period
+   *
+   * @var unix timestamp
+   */
+  public $date_from;
+
+  /**
+   * Finish date of data analysis period
+   *
+   * @var unix timestamp
+   */
+  public $date_to;
+
+  /**
+   * Period in seconds. Period start from 'current time' - 'period' and finises at
+   * 'current time'. 'Current time' - the moment of a report execution. If it is
+   * specified date_from and date_to are ignored
+   *
+   * @var int
+   */
+  public $period;
+
+  /**
+   * Array of elements objects
+   *
+   * @var array
+   */
+  public $elements;
+
+  /**
+   * Array of meterics objects
+   *
+   * @var array
+   */
+  public $metrics;
+
+  /**
+   * @param int $report_id
+   *  primary key of amcr_report_description table
+   */
+  public function __construct($report_id = NULL) {
+    if(!empty($report_id))
+      $this->load($report_id);
+  }
+
+  /**
+   * Load report config from database
+   * @param int $report_id
+   *  primary key of amcr_report_description table
+   */
+  public function load($report_id) {
+    $report = db_query('SELECT * FROM {amcr_report_description} WHERE id = :id', array(':id' => $report_id))->fetchObject();
+
+    foreach($report as $key => $value) {
+      $this->$key = $value;
+    }
+
+    $result = db_query('SELECT * FROM {amcr_report_definition_element} WhERE rd_id = :rd_id ORDER BY weight ASC', array(':rd_id' => $report_id));
+    foreach ($result as $item) {
+      $this->elements[$item->id] = $item;
+    }
+
+    $result = db_query('SELECT * FROM {amcr_report_definition_metric} WhERE rd_id = :rd_id ORDER BY weight ASC', array(':rd_id' => $report_id));
+    foreach ($result as $item) {
+      $this->metrics[$item->id] = $item;
+    }
+  }
+
+  /**
+   * Store report config into database
+   */
+  public function save() {
+    db_merge('amcr_report_description')
+      ->key(array('id' => $this->id))
+      ->fields(array(
+        'name' => !empty($this->name) ?  $this->name : NULL,
+        'description' => !empty($this->description) ?  $this->description : NULL,
+        'report_suite_id' => !empty($this->report_suite_id) ?  $this->report_suite_id : NULL,
+        'method' => !empty($this->metrhod) ?  $this->method : 'ranked',
+        'date_from' => !empty($this->date_from) ?  $this->date_from : NULL,
+        'date_to' => !empty($this->date_to) ?  $this->date_to : NULL,
+        'period' => !empty($this->period) ?  $this->period : NULL,
+        'sort_by' => !empty($this->sort_by) ?  $this->sort_by : NULL,
+      ))
+      ->execute();
+
+    if (isset($this->id)){
+      watchdog('amcr', 'Report %report updated. Report Id is: %id',
+        array('%report' => $this->name,'%id' => $this->id ));
+    }
+    else {
+      watchdog('amcr', 'Report %report added. Report id is %id', array('%report' => $this->name, '%id' => $this->id), WATCHDOG_NOTICE, l(t('view'), 'admin/config/services/amcr'));
+    }
+  }
+
+
+  /*
+   * Deletes report config and all relative data
+   */
+  public function delete() {
+    if(!empty($this->id)) {
+      if(empty($this->name))
+        $this->load($this->id);
+
+      $name = $this->name;
+      db_delete('amcr_report_description')->
+        condition('id', $this->id)
+        ->execute();
+      watchdog('amcr', 'Report %report deleted.', array('%report' => $name));
+    }
+  }
+}
+
+
+/**
  * Gets report data from adobe marketing cloud
  */
 class AmcrReport {

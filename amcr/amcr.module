@@ -105,74 +105,22 @@ function amcr_theme() {
 
 
 /**
- * Loads a report.
+ * Loads a report config.
  *
  * @param $id
  *   The report id.
  *
  * @return
- *   An object describing the report.
+ *   A report config object.
  */
 function amcr_report_load($id) {
   $reports = &drupal_static(__FUNCTION__);
   if (!isset($reports[$id])) {
-    $report = db_query('SELECT * FROM {amcr_report_description} WHERE id = :id', array(':id' => $id))->fetchObject();
-
-    $result = db_query('SELECT * FROM {amcr_report_definition_element} WhERE rd_id = :rd_id ORDER BY weight ASC', array(':rd_id' => $id));
-    foreach ($result as $item) {
-      $report->elements[$item->id] = $item;
-    }
-
-    $result = db_query('SELECT * FROM {amcr_report_definition_metric} WhERE rd_id = :rd_id ORDER BY weight ASC', array(':rd_id' => $id));
-    foreach ($result as $item) {
-      $report->metrics[$item->id] = $item;
-    }
-
-    $reports[$id] = $report;
+    $report_config = new AmcrReportConfig(NULL);
+    $report_config->load($id);
+    $reports[$id] = $report_config;
   }
   return $reports[$id];
 }
 
-/**
- * Add/edit/delete a report.
- *
- * @param $edit
- *   An associative array describing the report to be added/edited/deleted.
- */
-function amcr_save_report_settings($edit) {
 
-  if (!empty($edit['id']) && !empty($edit['name'])) {
-    db_update('amcr_report_description')
-      ->condition('id', $edit['id'])
-      ->fields(array(
-        'name' => $edit['name'],
-        'description' => $edit['description'],
-        'report_suite_id' => $edit['report_suite_id'],
-        'method' => $edit['method'],
-        'date_from' => $edit['date_from'],
-        'date_to' => $edit['date_to'],
-        'period' => $edit['period'],
-        'sort_by' => $edit['sort_by'],
-      ))
-      ->execute();
-  }
-  elseif (!empty($edit['id'])) {
-    db_delete('amcr_report_description')->
-      condition('id', $edit['id'])
-      ->execute();
-  }
-  elseif (!empty($edit['name'])) {
-    $edit['id'] = db_insert('amcr_report_description')
-      ->fields(array(
-        'name' => $edit['name'],
-        'description' => $edit['description'],
-        'report_suite_id' => $edit['report_suite_id'],
-        'method' => $edit['method'],
-        'date_from' => $edit['date_from'],
-        'date_to' => $edit['date_to'],
-        'period' => $edit['period'],
-        'sort_by' => $edit['sort_by'],
-      ))
-      ->execute();
-  }
-}

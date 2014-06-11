@@ -53,7 +53,7 @@ function amcr_report_list() {
  * @see amcr_form_report_submit()
  */
 
-function amcr_report_form($form, &$form_state, stdClass $report = NULL) {
+function amcr_report_form($form, &$form_state, AmcrReportConfig $report = NULL) {
   $methods = array('ranked' => 'Ranked report',
     'trended' => 'Trended report',
     'overtime' => 'Overtime report',
@@ -237,7 +237,7 @@ function _amcr_element_form($item = NULL) {
  * @param &$form_state
  *  the function change $form_state['elements_count'] parameter
  * @param $report_elements
- *  $report->elements object restored from db
+ *  $report->elements array restored from db
  *
  * @return
  *  $form['elements'] structure
@@ -306,7 +306,7 @@ function _amcr_elements_list(&$form_state = NULL, $report_elements) {
  * @param &$form_state
  *  the function change $form_state['metrics_count'] parameter
  * @param $report_metrics
- *  $report->metrics object restored from db
+ *  $report->metrics array restored from db
  *
  * @return
  *  $form['metrics'] structure
@@ -471,37 +471,6 @@ function theme_amcr_metric_form($variables) {
   return $output;
 }
 
-
-/**
- * Form validation handler for aggregator_form_feed().
- *
- * @see aggregator_form_feed_submit()
- */
-/*
-function aggregator_form_feed_validate($form, &$form_state) {
-  if ($form_state['values']['op'] == t('Save')) {
-    // Ensure URL is valid.
-    if (!valid_url($form_state['values']['url'], TRUE)) {
-      form_set_error('url', t('The URL %url is invalid. Enter a fully-qualified URL, such as http://www.example.com/feed.xml.', array('%url' => $form_state['values']['url'])));
-    }
-    // Check for duplicate titles.
-    if (isset($form_state['values']['fid'])) {
-      $result = db_query("SELECT title, url FROM {aggregator_feed} WHERE (title = :title OR url = :url) AND fid <> :fid", array(':title' => $form_state['values']['title'], ':url' => $form_state['values']['url'], ':fid' => $form_state['values']['fid']));
-    }
-    else {
-      $result = db_query("SELECT title, url FROM {aggregator_feed} WHERE title = :title OR url = :url", array(':title' => $form_state['values']['title'], ':url' => $form_state['values']['url']));
-    }
-    foreach ($result as $feed) {
-      if (strcasecmp($feed->title, $form_state['values']['title']) == 0) {
-        form_set_error('title', t('A feed named %feed already exists. Enter a unique title.', array('%feed' => $form_state['values']['title'])));
-      }
-      if (strcasecmp($feed->url, $form_state['values']['url']) == 0) {
-        form_set_error('url', t('A feed with this URL %url already exists. Enter a unique URL.', array('%url' => $form_state['values']['url'])));
-      }
-    }
-  }
-}
-
 /**
  * Form submission handler for amcr_report_form().
  *
@@ -510,57 +479,70 @@ function aggregator_form_feed_validate($form, &$form_state) {
  */
 function amcr_report_form_submit($form, &$form_state) {
   if ($form_state['values']['op'] == t('Delete')) {
-    $title = $form_state['values']['title'];
-    unset($form_state['values']['title']);
+    $form_state['redirect'] = 'admin/config/services/amcr/remove/' . $form_state['values']['id'];
+    return;
   }
+  
+  $edit = $form_state['values'];
+  $report_config = new AmcrReportConfig(NULL);
+  $report_config->id = !empty($edit['id']) ? $edit['id'] : NULL;
+  $report_config->name = !empty($edit['name']) ?  $edit['name'] : NULL;
+  $report_config->description = !empty($edit['description']) ?  $edit['description'] : NULL;
+  $report_config->report_suite_id = !empty($edit['report_suite_id']) ?  $edit['report_suite_id'] : NULL;
+  $report_config->method = !empty($edit['metrhod']) ?  $edit['method'] : NULL;
+  $report_config->date_from = mktime(0,0,0, $edit['date_from']['month'],
+    $edit['date_from']['day'],$edit['date_from']['year']);
+  $report_config->date_to = mktime(23,59,59, $edit['date_to']['month'],
+    $edit['date_to']['day'],$edit['date_to']['year']);
+  $report_config->period = !empty($edit['period']) ?  $edit['period'] * 3600 : NULL;
+  $report_config->sort_by = !empty($edit['sort_by']) ?  $edit['sort_by'] : NULL;
+  $report_config->save();
 
-  amcr_save_report_settings($form_state['values']);
+  $form_state['redirect'] = 'admin/config/services/amcr/';
 
   if (isset($form_state['values']['id'])) {
-    if (isset($form_state['values']['title'])) {
-      drupal_set_message(t('The report %report has been updated.', array('%report' => $form_state['values']['title'])));
-      $form_state['redirect'] = 'admin/config/services/amcr/';
-      return;
-    }
-    else {
-      watchdog('amcr', 'Report %report deleted.', array('%report' => $title));
-      drupal_set_message(t('The report %report has been deleted.', array('%report' => $title)));
-      $form_state['redirect'] = 'admin/config/services/amcr/';
-      return;
-    }
+    drupal_set_message(t('The report %report has been updated.', array('%report' => $form_state['values']['name'])));
   }
   else {
-    watchdog('amcr', 'Report %report added.', array('%report' => $form_state['values']['title']), WATCHDOG_NOTICE, l(t('view'), 'admin/config/services/amcr'));
-    drupal_set_message(t('The report %report has been added.', array('%report' => $form_state['values']['title'])));
+    drupal_set_message(t('The report %report has been added.', array('%report' => $form_state['values']['name'])));
   }
 }
 
 /**
- * Deletes a feed.
+ * Deletes a report config.
  *
- * @param $feed
- *   An associative array describing the feed to be cleared.
+ * @param $report
+ *   An AmcrReportConfig object to be deleted.
  *
- * @see aggregator_admin_remove_feed_submit()
  */
-/*
-function aggregator_admin_remove_feed($form, $form_state, $feed) {
+function amcr_admin_remove_report($form, $form_state, $report) {
   return confirm_form(
     array(
-      'feed' => array(
+      'report' => array(
         '#type' => 'value',
-        '#value' => $feed,
+        '#value' => $report,
       ),
     ),
-    t('Are you sure you want to remove all items from the feed %feed?', array('%feed' => $feed->title)),
-    'admin/config/services/aggregator',
+    t('Are you sure you want to remove config and all data of report %report?', array('%report' => $report->name)),
+    'admin/config/services/amcr',
     t('This action cannot be undone.'),
-    t('Remove items'),
+    t('Remove report'),
     t('Cancel')
   );
 }
 
-
+/**
+ * Form submission handler for amcr_admin_remove_report().
+ *
+ * Removes report config.
+ */
+function amcr_admin_remove_report_submit($form, &$form_state) {
+  $report_config = $form_state['values']['report'];
+  $name = $report_config->name;
+  $report_config->delete();
+  drupal_set_message(t('The report %report has been deleted.', array('%report' => $name)));
+  $form_state['redirect'] = 'admin/config/services/amcr/';
+}
 
 
 

@@ -33,9 +33,9 @@ class AmcrMarketingClient {
 
 
 /**
- * Implements Ecxetption of AmcrReport class
+ * Implements Ecxetption for Amcr report classes
  */
-class AmcrReportException extends Exception {
+class AmcrException extends Exception {
 
 }
 
@@ -74,14 +74,14 @@ class AmcrReportConfig {
   /**
    * Start date of data analysis period
    *
-   * @var unix timestamp
+   * @var imestamp
    */
   public $date_from;
 
   /**
    * Finish date of data analysis period
    *
-   * @var unix timestamp
+   * @var timestamp
    */
   public $date_to;
 
@@ -95,16 +95,25 @@ class AmcrReportConfig {
   public $period;
 
   /**
+   * Number of seconds between report updates.
+   * Every time cron runs it checks if current time less than last_update + update_frequency
+   * if current timestamp is less, cron runs update data procedure for the report
+   *
+   * @var int
+   */
+  public $update_frequency;
+
+  /**
    * Array of elements objects
    *
-   * @var array
+   * @var array of stdClass objects
    */
   public $elements;
 
   /**
-   * Array of meterics objects
+   * Array of metrics objects
    *
-   * @var array
+   * @var array of stdClass objects
    */
   public $metrics;
 
@@ -113,6 +122,16 @@ class AmcrReportConfig {
    *  primary key of amcr_report_description table
    */
   public function __construct($report_id = NULL) {
+    $this->metrics = array();
+    $this->elements = array();
+    $this->name = NULL;
+    $this->description = NULL;
+    $this->method = 'ranked';
+    $this->date_from = NULL;
+    $this->date_to = NULL;
+    $this->period = NULL;
+    $this->sort_by = NULL;
+
     if(!empty($report_id))
       $this->load($report_id);
   }
@@ -123,18 +142,21 @@ class AmcrReportConfig {
    *  primary key of amcr_report_description table
    */
   public function load($report_id) {
-    $report = db_query('SELECT * FROM {amcr_report_description} WHERE id = :id', array(':id' => $report_id))->fetchObject();
+    $report = db_query('SELECT * FROM {amcr_report_description} WHERE id = :id',
+      array(':id' => $report_id))->fetchObject();
 
     foreach($report as $key => $value) {
       $this->$key = $value;
     }
 
-    $result = db_query('SELECT * FROM {amcr_report_definition_element} WhERE rd_id = :rd_id ORDER BY weight ASC', array(':rd_id' => $report_id));
+    $result = db_query('SELECT * FROM {amcr_report_definition_element} WhERE rd_id = :rd_id ORDER BY weight ASC',
+      array(':rd_id' => $report_id));
     foreach ($result as $item) {
       $this->elements[$item->id] = $item;
     }
 
-    $result = db_query('SELECT * FROM {amcr_report_definition_metric} WhERE rd_id = :rd_id ORDER BY weight ASC', array(':rd_id' => $report_id));
+    $result = db_query('SELECT * FROM {amcr_report_definition_metric} WhERE rd_id = :rd_id ORDER BY weight ASC',
+      array(':rd_id' => $report_id));
     foreach ($result as $item) {
       $this->metrics[$item->id] = $item;
     }
@@ -144,7 +166,7 @@ class AmcrReportConfig {
    * Store report config into database
    */
   public function save() {
-    db_merge('amcr_report_description')
+   $status = db_merge('amcr_report_description')
       ->key(array('id' => $this->id))
       ->fields(array(
         'name' => !empty($this->name) ?  $this->name : NULL,
@@ -155,15 +177,65 @@ class AmcrReportConfig {
         'date_to' => !empty($this->date_to) ?  $this->date_to : NULL,
         'period' => !empty($this->period) ?  $this->period : NULL,
         'sort_by' => !empty($this->sort_by) ?  $this->sort_by : NULL,
+        'update_frequency' => !empty($this->update_frequency) ?  $this->update_frequency : NULL,
       ))
       ->execute();
+
+    if( $status == MergeQuery::STATUS_INSERT ) {
+      $this->id = db_query("SELECT MAX(id) FROM {amcr_report_description}")->fetchField();
+    }
+
+    if(!empty($this->id)) {
+      $result = db_query('SELECT * FROM {amcr_report_definition_element} WhERE rd_id = :rd_id ORDER BY weight ASC',
+        array(':rd_id' => $this->id));
+      foreach ($result as $item) {
+        if(empty($this->elements[$item->id])) {
+          db_delete('amcr_report_definition_element')->
+            condition('id', $item->id)
+            ->execute();
+        }
+      }
+      foreach($this->elements as $element) {
+        db_merge('amcr_report_definition_element')
+          ->key(array('id' => $element->id))
+          ->fields(array(
+            'element_id' => !empty($element->element_id) ?  $element->element_id : NULL,
+            'weight' => !empty($element->weight) ?  $element->weight : NULL,
+            'rd_id' => $this->id,
+          ))
+          ->execute();
+      }
+
+      $result = db_query('SELECT * FROM {amcr_report_definition_metric} WhERE rd_id = :rd_id ORDER BY weight ASC',
+        array(':rd_id' => $this->id));
+      foreach ($result as $item) {
+        if(empty($this->metrics[$item->id])) {
+          db_delete('amcr_report_definition_metric')->
+            condition('id', $item->id)
+            ->execute();
+        }
+      }
+      foreach($this->metrics as $metric) {
+        db_merge('amcr_report_definition_metric')
+          ->key(array('id' => $metric->id))
+          ->fields(array(
+            'metric_id' => !empty($metric->metric_id) ?  $metric->metric_id : NULL,
+            'weight' => !empty($metric->weight) ?  $metric->weight : NULL,
+            'rd_id' => $this->id,
+          ))
+          ->execute();
+      }
+    }
 
     if (isset($this->id)){
       watchdog('amcr', 'Report %report updated. Report Id is: %id',
         array('%report' => $this->name,'%id' => $this->id ));
     }
     else {
-      watchdog('amcr', 'Report %report added. Report id is %id', array('%report' => $this->name, '%id' => $this->id), WATCHDOG_NOTICE, l(t('view'), 'admin/config/services/amcr'));
+      watchdog('amcr', 'Report %report added. Report id is %id',
+        array('%report' => $this->name,
+        '%id' => $this->id),
+        WATCHDOG_NOTICE, l(t('view'), 'admin/config/services/amcr'));
     }
   }
 
@@ -177,6 +249,19 @@ class AmcrReportConfig {
         $this->load($this->id);
 
       $name = $this->name;
+
+      foreach($this->elements as $element) {
+        db_delete('amcr_report_definition_element')->
+          condition('id', $element->id)
+          ->execute();
+      }
+
+      foreach($this->metrics as $metric) {
+        db_delete('amcr_report_definition_metric')->
+          condition('id', $metric->id)
+          ->execute();
+      }
+
       db_delete('amcr_report_description')->
         condition('id', $this->id)
         ->execute();

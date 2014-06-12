@@ -134,6 +134,14 @@ function amcr_report_form($form, &$form_state, AmcrReportConfig $report = NULL) 
     '#description' => t('Metric id to sort results'),
     '#required' => FALSE,
   );
+  $form['update_frequency'] = array('#type' => 'textfield',
+    '#title' => t('Update frequency'),
+    '#default_value' => isset($report->update_frequency) ? $report->update_frequency / 60 : '',
+    '#maxlength' => NULL,
+    '#size' => 5,
+    '#description' => t('Number of minutes before running report update procedure.'),
+    '#required' => FALSE,
+  );
 
   $form['actions'] = array('#type' => 'actions');
   $form['actions']['submit'] = array(
@@ -482,7 +490,7 @@ function amcr_report_form_submit($form, &$form_state) {
     $form_state['redirect'] = 'admin/config/services/amcr/remove/' . $form_state['values']['id'];
     return;
   }
-  
+
   $edit = $form_state['values'];
   $report_config = new AmcrReportConfig(NULL);
   $report_config->id = !empty($edit['id']) ? $edit['id'] : NULL;
@@ -496,6 +504,36 @@ function amcr_report_form_submit($form, &$form_state) {
     $edit['date_to']['day'],$edit['date_to']['year']);
   $report_config->period = !empty($edit['period']) ?  $edit['period'] * 3600 : NULL;
   $report_config->sort_by = !empty($edit['sort_by']) ?  $edit['sort_by'] : NULL;
+  $report_config->update_frequency = !empty($edit['update_frequency']) ?  $edit['update_frequency'] * 60 : NULL;
+
+  foreach($edit['elements']['items'] as $id => $fields) {
+    if(!empty($fields['id'])) {
+      $element = new stdClass;
+      if(is_numeric($id)) {
+        $element->id = $id;
+      } else {
+        $element->id = null;
+      }
+      $element->element_id = $fields['id'];
+      $element->weight = $fields['weight'];
+      $report_config->elements[$id] = $element;
+    }
+  }
+
+  foreach($edit['metrics']['items'] as $id => $fields) {
+    if(!empty($fields['id'])) {
+      $metric = new stdClass;
+      if(is_numeric($id)) {
+        $metric->id = $id;
+      } else {
+        $metric->id = null;
+      }
+      $metric->metric_id = $fields['id'];
+      $metric->weight = $fields['weight'];
+      $report_config->metrics[$id] = $metric;
+    }
+  }
+
   $report_config->save();
 
   $form_state['redirect'] = 'admin/config/services/amcr/';

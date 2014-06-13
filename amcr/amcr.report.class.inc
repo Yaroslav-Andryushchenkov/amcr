@@ -277,11 +277,11 @@ class AmcrReportConfig {
 class AmcrReport {
 
   /**
-   * Report suite id
+   * Report config
    *
-   * @var string
+   * @var AmcrReportConfig object
    */
-  protected $report_suite_id;
+  protected $config;
 
   /**
    * map of elements indexes and amcr_report_element primary keys
@@ -295,45 +295,61 @@ class AmcrReport {
    * @var array
    */
   protected $report_element_ids;
+  /**
+   * report data returned by Adobe marketing cloud
+   *
+   * @var array
+   */
+  public $data;
 
-  function __construct() {
-    $this->report_suite_id = 'viamtviggycom';
+  /**
+   * Constructor
+   *
+   * @param AmcrReportConfig object
+   */
+  public function __construct(AmcrReportConfig $config = NULL) {
+    if(empty($config)) {
+      $e = new AmcrException(t('AmcrReport constructor: no config info is passed'),1);
+      throw $e;
+    }
+
+    $this->config = $config;
     $this->marketing_client = AmcrMarketingClient::getInstance();
   }
+
 
   /**
    * Get Reports data from
    */
   public function getData() {
-    $period = 7*24*3600;
+
+    function cmp($e1, $e2) {
+      if($e1->weight == $e2->weight) {
+        return 0;
+      }
+
+      return ($e1->weight < $e2->weight) ? -1 : 1;
+    }
+
+    unset($this->data);
+    unset($this->report_metric_ids);
+    unset($this->report_element_ids);
+
     $report_api = $this->marketing_client->getReportApi();
-    /*
-        $elements[] =  array(
-          'id' => 'prop1',
-          'top' => 10,
-        );
-        $elements[] =  array(
-          'id' => 'evar61',
-          'top' => 10,
-        );
-    */
-    $elements[] =  array(
-      'id' => 'domain',
-      'top' => 10,
-    );
 
-    $elements[] =  array(
-      'id' => 'browser',
-      'top' => 10,
-    );
+    $config_elements = $this->config->elements;
+    uasort($config_elements, 'cmp');
+    foreach($config_elements as $element) {
+      $elements[] =  array(
+        'id' => $element->element_id,
+        'top' => 10,
+      );
+    }
 
-    $elements[] =  array(
-      'id' => 'ctimezone',
-      'top' => 10,
-    );
+    $period = 7*24*3600;
 
     $response = $report_api->queueRanked(array(
-      'reportSuiteID' => $this->report_suite_id,
+      'reportSuiteID' => $this->config->report_suite_id,
       'dateFrom' =>  date('Y-m-d H:i:s', time() - $period),
       'dateTo' => date('Y-m-d H:i:s'),
       'metrics'  => array(
@@ -353,6 +369,7 @@ class AmcrReport {
       sleep(2);
     } while ($report['status'] == 'not ready');
 
+    $this->data = $report;
     $this->saveResponse($report);
 
     return 'data is saved';

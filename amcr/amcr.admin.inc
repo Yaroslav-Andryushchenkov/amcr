@@ -271,17 +271,31 @@ function _amcr_elements_list(&$form_state = NULL, $report_elements) {
 
   $delta = 0;
   $weight = 0;
-  foreach ($report_elements as $item) {
-    $form['items'][$item->id] = _amcr_element_form($item);
-    $delta++;
-    if($item->weight > $weight) {
-      $weight = $item->weight;
+
+  if(isset($form_state['values']['elements']['add'])) {
+    foreach ($form_state['values']['elements']['items'] as $key => $element) {
+      $item = new stdClass();
+      $item->element_id = $element['id'];
+      $item->weight = $element['weight'];
+      $form['items'][$key] = _amcr_element_form($item);
+      $delta++;
+      if($item->weight > $weight) {
+        $weight = $item->weight;
+      }
+    }
+  } else {
+    foreach ($report_elements as $item) {
+      $form['items'][$item->id] = _amcr_element_form($item);
+      $delta++;
+      if($item->weight > $weight) {
+        $weight = $item->weight;
+      }
     }
   }
 
-  $existing_delta = $delta;
+
   for ($delta; $delta < $elements_count; $delta++) {
-    $key = 'new:' . ($delta - $existing_delta);
+    $key = 'new:' . $delta;
     $weight++;
     $item = new stdClass();
     $item->weight = $weight;
@@ -342,17 +356,31 @@ function _amcr_metrics_list(&$form_state = NULL, $report_metrics) {
 
   $delta = 0;
   $weight = 0;
-  foreach ($report_metrics as $item) {
-    $form['items'][$item->id] = _amcr_metric_form($item);
-    $delta++;
-    if($item->weight > $weight) {
-      $weight = $item->weight;
+  if(isset($form_state['values']['metrics']['add'])) {
+    foreach ($form_state['values']['metrics']['items'] as $key => $metric) {
+      $item = new stdClass();
+      $item->metric_id = $metric['id'];
+      $item->weight = $metric['weight'];
+      $form['items'][$key] = _amcr_metric_form($item);
+      $delta++;
+      if($item->weight > $weight) {
+        $weight = $item->weight;
+      }
+    }
+  }
+  else {
+    foreach ($report_metrics as $item) {
+      $form['items'][$item->id] = _amcr_metric_form($item);
+      $delta++;
+      if($item->weight > $weight) {
+        $weight = $item->weight;
+      }
     }
   }
 
-  $existing_delta = $delta;
+
   for ($delta; $delta < $metrics_count; $delta++) {
-    $key = 'new:' . ($delta - $existing_delta);
+    $key = 'new:' . $delta;
     $weight++;
     $item = new stdClass();
     $item->weight = $weight;

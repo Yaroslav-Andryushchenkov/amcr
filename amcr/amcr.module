@@ -70,17 +70,7 @@ function amcr_menu() {
  * Page callbac, form amcr menu item
  */
 function amcr_test_page() {
-  try {
-    $report_config = new AmcrReportConfig(11);
-    $data_source = new AmcrReport($report_config);
-    $data_source->getData();
-    $data_source->save();
-  }
-  catch (Exception $e) {
-    watchdog_exception('amcr', $e);
-    return $e->getMessage();
-  }
-
+  _amcr_update_report(11);
   return 'Report completed';
 
 }
@@ -134,4 +124,50 @@ function amcr_report_load($id) {
   return $reports[$id];
 }
 
+/**
+ * Implements hook_cron
+ */
+function amcr_cron() {
+  $result = db_query('SELECT * FROM {amcr_report_description} WHERE last_update + update_frequency < :time',
+    array(':time' => REQUEST_TIME));
 
+  $queue = DrupalQueue::get('amcr_reports');
+  foreach ($result as $report) {
+    $queue->createItem($report->id);
+  }
+}
+
+/**
+ * Implements hook_cron_queue_info
+ */
+function amcr_cron_queue_info() {
+  $queues['amcr_reports'] = array(
+    'worker callback' => '_amcr_update_report',
+    'time' => 120,
+  );
+  return $queues;
+}
+
+/**
+ * Callback for hook_cron_queue_info
+ * updates report
+ *
+ * @param $rd_id int
+ *  Primary keq of amcr_report_description table (config id)
+ */
+function _amcr_update_report($rd_id) {
+  try {
+    $report_config = new AmcrReportConfig($rd_id);
+    $data_source = new AmcrReport($report_config);
+    $data_source->getData();
+    $data_source->save();
+    db_update('{amcr_report_description}')
+      ->condition('id', $rd_id)
+      ->fields(array('last_update' => time()))
+      ->execute();
+    watchdog('amcr','report '.$report_config->name. ' updated', array(), WATCHDOG_INFO);
+  }
+  catch (Exception $e) {
+    watchdog_exception('amcr', $e);
+  }
+}

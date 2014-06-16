@@ -567,10 +567,10 @@ function amcr_report_form_submit($form, &$form_state) {
   $form_state['redirect'] = 'admin/config/services/amcr/';
 
   if (isset($form_state['values']['id'])) {
-    drupal_set_message(t('The report %report has been updated.', array('%report' => $form_state['values']['name'])));
+    drupal_set_message(t('The report config %report has been updated.', array('%report' => $form_state['values']['name'])));
   }
   else {
-    drupal_set_message(t('The report %report has been added.', array('%report' => $form_state['values']['name'])));
+    drupal_set_message(t('The report config %report has been added.', array('%report' => $form_state['values']['name'])));
   }
 }
 

@@ -230,11 +230,11 @@ class AmcrReportConfig {
     }
 
     if (isset($this->id)){
-      watchdog('amcr', 'Report %report updated. Report Id is: %id',
+      watchdog('amcr', 'Report config %report updated. Report Id is: %id',
         array('%report' => $this->name,'%id' => $this->id ));
     }
     else {
-      watchdog('amcr', 'Report %report added. Report id is %id',
+      watchdog('amcr', 'Report config %report added. Report id is %id',
         array('%report' => $this->name,
         '%id' => $this->id),
         WATCHDOG_NOTICE, l(t('view'), 'admin/config/services/amcr'));

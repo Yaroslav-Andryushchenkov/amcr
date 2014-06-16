@@ -14,8 +14,7 @@ class AmcrMarketingClient {
   static protected $marketing_client = NULL;
 
   static public function getInstance() {
-    if(empty(self::$marketing_client))
-      try {
+    if(empty(self::$marketing_client)) {
         require_once drupal_get_path(
             'module',
             'amcr'
@@ -23,9 +22,7 @@ class AmcrMarketingClient {
         AdobeDigitalMarketing_Autoloader::register();
         self::$marketing_client = new AdobeDigitalMarketing_Client();
         self::$marketing_client->authenticate('dzemidziukp:MTV', '64ea1874aec2e447c11aee9db6b0bc07');
-      } catch (Exception $e) {
-        watchdog_exception('amcr', $e);
-      }
+    }
 
     return self::$marketing_client;
   }
@@ -144,6 +141,11 @@ class AmcrReportConfig {
   public function load($report_id) {
     $report = db_query('SELECT * FROM {amcr_report_description} WHERE id = :id',
       array(':id' => $report_id))->fetchObject();
+
+    if(empty($report)) {
+      $e = new AmcrException(t('Invalid report description id'), 1);
+      throw $e;
+    }
 
     foreach($report as $key => $value) {
       $this->$key = $value;
@@ -289,14 +291,17 @@ class AmcrReport {
    * @var array
    */
   protected $report_metric_ids;
+
   /**
    * map of metrics indexes and amcr_report_metric primary keys
    *
    * @var array
    */
   protected $report_element_ids;
+
   /**
-   * report data returned by Adobe marketing cloud
+    * A structure containing the report data of requested report. It is returned
+   *  by  AdobeDigitalMarketing_Api_Report::getReport
    *
    * @var array
    */
@@ -327,7 +332,6 @@ class AmcrReport {
       if($e1->weight == $e2->weight) {
         return 0;
       }
-
       return ($e1->weight < $e2->weight) ? -1 : 1;
     }
 
@@ -337,31 +341,50 @@ class AmcrReport {
 
     $report_api = $this->marketing_client->getReportApi();
 
+    $elements = array();
     $config_elements = $this->config->elements;
     uasort($config_elements, 'cmp');
     foreach($config_elements as $element) {
       $elements[] =  array(
         'id' => $element->element_id,
-        'top' => 10,
       );
     }
 
-    $period = 7*24*3600;
+    $metrics = array();
+    $config_metrics = $this->config->metrics;
+    uasort($config_metrics, 'cmp');
+    foreach($config_metrics as $metric) {
+      $metrics[] =  array(
+        'id' => $metric->metric_id,
+      );
+    }
 
-    $response = $report_api->queueRanked(array(
-      'reportSuiteID' => $this->config->report_suite_id,
-      'dateFrom' =>  date('Y-m-d H:i:s', time() - $period),
-      'dateTo' => date('Y-m-d H:i:s'),
-      'metrics'  => array(
-        array('id' => 'pageviews'),
-        array('id' => 'event8'),
-        array('id' => 'event84'),
-        array('id' => 'event86'),
-      ),
-      'elements'  => $elements,
-      "sortBy" => "uniquevisitors"
-    ));
+    if(!empty($this->config->report_suite_id)) {
+      $request_params['reportSuiteID'] = $this->config->report_suite_id;
+    }
 
+    if(!empty($elements)) {
+      $request_params['elements'] = $elements;
+    }
+
+    if(!empty($metrics)) {
+      $request_params['metrics'] = $metrics;
+    }
+
+    if(!empty($this->config->sort_by)){
+      $request_params['sortBy'] = $this->config->sort_by;
+    }
+
+    if(!empty($this->config->period)) {
+      $request_params['dateFrom'] = date('Y-m-d H:i:s', time() - $this->config->period);
+      $request_params['dateTo'] = date('Y-m-d H:i:s');
+    }
+    else {
+      $request_params['dateFrom'] = date('Y-m-d H:i:s', time() - $this->config->date_from);
+      $request_params['dateTo'] = date('Y-m-d H:i:s', time() - $this->config->date_to);
+    }
+
+    $response = $report_api->queueRanked($request_params);
     $report_id = $response['reportID'];
 
     do {
@@ -370,30 +393,21 @@ class AmcrReport {
     } while ($report['status'] == 'not ready');
 
     $this->data = $report;
-    $this->saveResponse($report);
 
-    return 'data is saved';
-
-    //return $this->_get_ids($depth == 0 ? $report['report']['data'] : array_shift($report['report']['data']), $depth);
   }
 
 
   /**
-   * Saves response data in amcr_report_response table
-   *
-   * @param array $response
-   *  A structure containing the report data of requested report. It is returned
-   *  by  AdobeDigitalMarketing_Api_Report::getReport
-   *
+   * Saves data in amcr_report_response table
    */
-  protected function saveResponse($response) {
-    $report_id = $this->saveReport($response['report']);
+  public function save() {
+    $report_id = $this->saveReport($this->data['report']);
     $insert_data = array(
-      'status' => isset($response['status']) ? $response['status'] : null,
-      'status_msg' => isset($response['statusMsg']) ? $response['statusMsg'] : null,
-      'run_seconds' => isset($response['runSeconds']) ? $response['runSeconds'] : null,
-      'wait_seconds' => isset($response['waitSeconds']) ? $response['waitSeconds'] : null,
-      'status_desc' => isset($response['statusDesc']) ? $response['statusDesc'] : null,
+      'status' => isset($this->data['status']) ? $this->data['status'] : null,
+      'status_msg' => isset($this->data['statusMsg']) ? $this->data['statusMsg'] : null,
+      'run_seconds' => isset($this->data['runSeconds']) ? $this->data['runSeconds'] : null,
+      'wait_seconds' => isset($this->data['waitSeconds']) ? $this->data['waitSeconds'] : null,
+      'status_desc' => isset($this->data['statusDesc']) ? $this->data['statusDesc'] : null,
       'report_id' => $report_id,
     );
 

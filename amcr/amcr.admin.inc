@@ -98,8 +98,8 @@ function amcr_report_form($form, &$form_state, AmcrReportConfig $report = NULL) 
     '#title' => t('Date from'),
     '#default_value' => isset($report->date_from) ?
         array('year' => date('Y', intval($report->date_from)),
-          'month' => date('m', intval($report->date_from)),
-          'day' => date('d', intval($report->date_from))
+          'month' => date('n', intval($report->date_from)),
+          'day' => date('j', intval($report->date_from))
         ) : '',
     '#maxlength' => NULL,
     '#description' => t('Data is analysed since \'Date from \' till \'Date to\'. It is '.
@@ -111,8 +111,8 @@ function amcr_report_form($form, &$form_state, AmcrReportConfig $report = NULL) 
     '#title' => t('Date to'),
     '#default_value' => isset($report->date_to) ?
         array('year' => date('Y', intval($report->date_to)),
-        'month' => date('m', intval($report->date_to)),
-        'day' => date('d', intval($report->date_to))
+        'month' => date('n', intval($report->date_to)),
+        'day' => date('j', intval($report->date_to))
         ) : '',
     '#maxlength' => NULL,
     '#description' => t('Data is analysed since \'Date from \' till \'Date to\'. It is '.

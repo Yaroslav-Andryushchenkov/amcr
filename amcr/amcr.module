@@ -71,7 +71,7 @@ function amcr_menu() {
  */
 function amcr_test_page() {
   try {
-    $report_config = new AmcrReportConfig(2);
+    $report_config = new AmcrReportConfig(11);
     $data_source = new AmcrReport($report_config);
     $data_source->getData();
     $data_source->save();

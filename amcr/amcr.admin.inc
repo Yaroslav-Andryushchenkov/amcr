@@ -57,7 +57,7 @@ function amcr_report_form($form, &$form_state, AmcrReportConfig $report = NULL) 
   $methods = array('ranked' => 'Ranked report',
     'trended' => 'Trended report',
     'overtime' => 'Overtime report',
-    'realtime' => 'Real time report',
+    //'realtime' => 'Real time report',
   );
 
   $form['name'] = array('#type' => 'textfield',
@@ -139,7 +139,7 @@ function amcr_report_form($form, &$form_state, AmcrReportConfig $report = NULL) 
     '#default_value' => isset($report->update_frequency) ? $report->update_frequency / 60 : '',
     '#maxlength' => NULL,
     '#size' => 5,
-    '#description' => t('Number of minutes before running report update procedure.'),
+    '#description' => t('Number of minutes between running report update procedure.'),
     '#required' => FALSE,
   );
 
@@ -525,7 +525,7 @@ function amcr_report_form_submit($form, &$form_state) {
   $report_config->name = !empty($edit['name']) ?  $edit['name'] : NULL;
   $report_config->description = !empty($edit['description']) ?  $edit['description'] : NULL;
   $report_config->report_suite_id = !empty($edit['report_suite_id']) ?  $edit['report_suite_id'] : NULL;
-  $report_config->method = !empty($edit['metrhod']) ?  $edit['method'] : NULL;
+  $report_config->method = !empty($edit['method']) ?  $edit['method'] : NULL;
   $report_config->date_from = mktime(0,0,0, $edit['date_from']['month'],
     $edit['date_from']['day'],$edit['date_from']['year']);
   $report_config->date_to = mktime(23,59,59, $edit['date_to']['month'],

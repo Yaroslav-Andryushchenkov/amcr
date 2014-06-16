@@ -174,7 +174,7 @@ class AmcrReportConfig {
         'name' => !empty($this->name) ?  $this->name : NULL,
         'description' => !empty($this->description) ?  $this->description : NULL,
         'report_suite_id' => !empty($this->report_suite_id) ?  $this->report_suite_id : NULL,
-        'method' => !empty($this->metrhod) ?  $this->method : 'ranked',
+        'method' => !empty($this->method) ?  $this->method : 'ranked',
         'date_from' => !empty($this->date_from) ?  $this->date_from : NULL,
         'date_to' => !empty($this->date_to) ?  $this->date_to : NULL,
         'period' => !empty($this->period) ?  $this->period : NULL,
@@ -380,11 +380,26 @@ class AmcrReport {
       $request_params['dateTo'] = date('Y-m-d H:i:s');
     }
     else {
-      $request_params['dateFrom'] = date('Y-m-d H:i:s', time() - $this->config->date_from);
-      $request_params['dateTo'] = date('Y-m-d H:i:s', time() - $this->config->date_to);
+      $request_params['dateFrom'] = date('Y-m-d H:i:s',  $this->config->date_from);
+      $request_params['dateTo'] = date('Y-m-d H:i:s',  $this->config->date_to);
     }
 
-    $response = $report_api->queueRanked($request_params);
+    switch($this->config->method) {
+      case 'ranked':
+        $response = $report_api->queueRanked($request_params);
+        break;
+      case 'trended':
+        $response = $report_api->queueTrended($request_params);
+        break;
+      case 'overtime':
+        $response = $report_api->queueOvertime($request_params);
+        break;
+      default:
+        $e = new AmcrException(t('ranked, trended and overtime reports are currently supported only.'));
+        throw $e;
+        break;
+    }
+
     $report_id = $response['reportID'];
 
     do {

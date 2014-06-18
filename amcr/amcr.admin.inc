@@ -6,7 +6,6 @@
  */
 
 
-
 /**
  * Displays the reports list.
  *
@@ -40,6 +39,29 @@ function amcr_report_list() {
 
   return $output;
 }
+
+/**
+ * Form constructor for amcr general settings.
+ *
+ * @ingroup forms
+ */
+function amcr_admin_form($form, &$form_state) {
+  $form['amcr_username'] = array('#type' => 'textfield',
+    '#title' => t('API Username'),
+    '#default_value' => variable_get('amcr_username',''),
+    '#maxlength' => NULL,
+    '#required' => TRUE,
+  );
+  $form['amcr_secret'] = array('#type' => 'textfield',
+    '#title' => t('Shared secret'),
+    '#default_value' => variable_get('amcr_secret',''),
+    '#maxlength' => NULL,
+    '#required' => TRUE,
+  );
+
+  return system_settings_form($form);
+}
+
 
 /**
  * Form constructor for adding and editing report config.

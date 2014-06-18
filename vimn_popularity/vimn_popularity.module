@@ -1,0 +1,258 @@
+<?php
+/**
+ * @file
+ * vimn_popularity.module
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function vimn_popularity_menu() {
+  $items['admin/config/system/vimn_popularity'] = array(
+    'title' => 'Analytics settings',
+    'description' => 'Configure settings related to the analytics systems',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('vimn_popularity_settings_form'),
+    'access arguments' => array('administer site configuration'),
+  );
+
+  return $items;
+}
+
+/**
+ * Implementation of hook_ctools_plugin_directory().
+ */
+function vimn_popularity_ctools_plugin_directory($module, $plugin) {
+  if ($module == 'ctools' && !empty($plugin)) {
+    return 'plugins/' . $plugin;
+  }
+}
+
+
+/**
+ * Implements hook_theme().
+ */
+function vimn_popularity_theme() {
+  return array(
+    'vimn_popularity_list_item' => array(
+      'variables' => array('node' => NULL),
+    ),
+    'vimn_popularity_block' => array(
+      'variables' => array('tab_list' => NULL),
+    ),
+  );
+}
+
+
+/**
+ * Returns HTML for a popular node to be displayed in the popularity block.
+ *
+ * @param $variables
+ *   An associative array containing:
+ *   - node: A node object.
+ *
+ * @ingroup themeable
+ */
+
+function theme_vimn_popularity_list_item($variables) {
+
+  $node = $variables['node'];
+
+  $output = '<div class="node-title">';
+  $output .= l($node->title, 'node/' . $node->nid);
+  $output .= theme('mark', array('type' => node_mark($node->nid, $node->changed)));
+  $output .= '</div><div class="node-author">';
+  $output .= theme('username', array('account' => user_load($node->uid)));
+  $output .= '</div>';
+
+  return $output;
+}
+
+/**
+ * Returns HTML for a popularity node to be displayed in the recent content block.
+ *
+ * @param $variables
+ *   An associative array containing:
+ *   - tab_list: An array (  'tab1' => array('nodes' => array(...), 'tab_title' => 'title' ), ....  ).
+ *
+ * @ingroup themeable
+ */
+
+function theme_vimn_popularity_block($variables) {
+
+  drupal_add_library('system', 'ui.tabs');
+  drupal_add_js('jQuery(document).ready(function () { jQuery( "#tabs" ).tabs(); });', 'inline');
+
+  $output = '<div id="tabs"><ul>';
+  foreach ($variables['tab_list'] as $tab_num => $tab_conf) {
+    $output .= '<li><a href="#tab' . $tab_num . '">' . $tab_conf['tab_title'] . '</a></li>';
+  }
+
+  $output .= '</ul>';
+
+  foreach ($variables['tab_list'] as $tab_num => $tab_conf) {
+
+    $rows = array();
+
+    foreach ($tab_conf['nodes'] as $node) {
+      if (!empty($node)) {
+        $rows[] = array(
+          array(
+            'data' => theme('vimn_popularity_list_item', array('node' => $node)),
+            'class' => 'title-author',
+          )
+        );
+      }
+    }
+
+    $tab_content = t('No nodes to output');
+    if ($rows) {
+      $tab_content = theme('table', array('rows' => $rows));
+    }
+
+    $output .= '<div id="tab' . $tab_num . '">' . $tab_content . '</div>';
+  }
+
+  $output .= '</div>';
+  return $output;
+}
+
+/**
+ * Implementation of hook_form_FORM_ID().
+ */
+function vimn_popularity_settings_form() {
+  $form['omniture'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Omniture'),
+  );
+  $form['omniture']['omniture_api_username'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Username'),
+    '#size' => 60,
+    '#required' => TRUE,
+    '#default_value' => variable_get('omniture_api_username', ''),
+    '#description' => t(
+      'Retrieve your API Username and Shared Secret by signing into <a href="https://my.omniture.com/">Adobe Analytics</a>. Go to <b>Star Icon > Admin Tools > Admin Tools Home > Company Settings > Web Services</b> to receive your credentials.'
+    ),
+  );
+  $form['omniture']['omniture_api_secret'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Secret'),
+    '#size' => 60,
+    '#required' => TRUE,
+    '#default_value' => variable_get('omniture_api_secret', ''),
+    '#description' => t(
+      'If you are not an administrator, you will need to ask your company\'s admin to retrieve your shared secret for you'
+    ),
+  );
+  $form['omniture']['omniture_report_suite_id'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Report suite id'),
+    '#size' => 60,
+    '#required' => TRUE,
+    '#default_value' => variable_get('omniture_report_suite_id', ''),
+  );
+  return system_settings_form($form);
+}
+
+/**
+ * Implementation of hook_cron.
+ */
+
+function vimn_popularity_cron() {
+
+   $tabs = _vimn_popularity_get_tab_setting();
+   $queue = DrupalQueue::get('vimnPopularityTabs');
+   foreach($tabs as $tab_conf) {
+     $queue->createItem($tab_conf);
+   }
+}
+
+/**
+ * Implements hook_cron_queue_info().
+ */
+function vimn_popularity_cron_queue_info() {
+  $queues = array();
+  $queues['vimnPopularityTabs'] = array(
+    'worker callback' => '_vimn_popularity_queue_handler',
+    'time' => 600,
+  );
+  return $queues;
+}
+
+
+/**
+ * Implements handler for cron queue
+ * @param $tab_conf config array of popularity block tab
+ */
+function _vimn_popularity_queue_handler($tab_conf) {
+  try{
+    $data_source = VimnPopularityDataSource::get_source($tab_conf);
+    _vimn_popularity_store_statisc($tab_conf['vimn_popularity_id'], $data_source->get_data());
+  }
+  catch(Exception $e) {
+    watchdog('vimn_popularity', $e->getMessage(), array(), WATCHDOG_ERROR, NULL);
+  };
+}
+
+/**
+ * Returns an array of pupularity blocks tabs configs.
+ */
+function _vimn_popularity_get_tab_setting()
+{
+  $query = db_select('panels_pane', 'p');
+  $query->fields('p', array('did'));
+  $query->condition('p.type', 'vimn_popularity');
+  $query->addTag('vimn_popularity_block_list');
+  $result = $query->execute();
+  $configs = array();
+  foreach($result as $record) {
+    if(!empty($record->did)) {
+      $display = panels_load_display($record->did);
+      foreach($display->content as $item)
+      {
+        foreach($item->configuration['vimn_popularity_tabs'] as $conf) {
+          $configs[] = $conf;
+        }
+      }
+    }
+  }
+ return $configs;
+}
+
+
+/**
+ * Store statistic in db.
+ * @param $block_id
+ *  Unique id of the block for which data is being stored
+ *
+ * @param $data
+ *  An array of pupularity statistic data to store
+ */
+function _vimn_popularity_store_statisc($tab_id, $data)
+{
+  db_delete('vimn_popularity_data')
+    ->condition('tab_id', $tab_id)
+    ->execute();
+
+
+  $insert_data = array();
+  foreach($data as $row){
+    $insert_data[] = array(
+      'tab_id' =>  $tab_id,
+      'node_id' => $row['node_id'],
+      'weight' => $row['weight'],
+    );
+  }
+
+  $insert = db_insert('vimn_popularity_data');
+  $insert->fields(array('tab_id', 'node_id', 'weight'));
+  foreach($insert_data as $value) {
+    $insert->values($value);
+  }
+  $insert->execute();
+
+  watchdog('vimn_popularity', '@tab block data updated' , array('@tab' => $tab_id), WATCHDOG_INFO, NULL);
+}
+
+

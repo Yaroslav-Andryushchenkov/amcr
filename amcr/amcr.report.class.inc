@@ -21,7 +21,8 @@ class AmcrMarketingClient {
           ) . '/adobe_marketing_sdk/lib/AdobeDigitalMarketing/Autoloader.php';
         AdobeDigitalMarketing_Autoloader::register();
         self::$marketing_client = new AdobeDigitalMarketing_Client();
-        self::$marketing_client->authenticate('dzemidziukp:MTV', '64ea1874aec2e447c11aee9db6b0bc07');
+        self::$marketing_client->authenticate(variable_get('amcr_username',''),
+          variable_get('amcr_secret',''));
     }
 
     return self::$marketing_client;

@@ -1,0 +1,52 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: Yaraslau_Andrushchan
+ * Date: 4/14/14
+ * Time: 3:55 PM
+ */
+
+/*
+ * Implement hook shema
+ */
+function vimn_popularity_schema() {
+  $schema = array();
+  $schema['vimn_popularity_data'] = array(
+    'description' => 'TODO: please describe this table!',
+    'fields' => array(
+      'id' => array(
+        'description' => 'primary index',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
+      'tab_id' => array(
+        'description' => 'unique id of a block settings tab',
+        'type' => 'varchar',
+        'length' => '27',
+        'not null' => TRUE,
+      ),
+      'node_id' => array(
+        'description' => 'id of the node',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'weight' => array(
+        'description' => 'number for sorting',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('id'),
+    'unique keys' => array(
+      'id' => array('id')
+    ),
+    'indexes' => array(
+      'tab_id' => array('tab_id'),
+    ),
+  );
+
+  return $schema;
+}

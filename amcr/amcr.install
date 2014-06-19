@@ -7,7 +7,7 @@
  */
 
 /**
- * Implements hook_schema
+ * Implements hook_schema().
  */
 function amcr_schema() {
   $schema['amcr_report'] = array(
@@ -35,11 +35,13 @@ function amcr_schema() {
       'elements_id' => array(
         'description' => 'foregn key to amcr_report_elements_list table',
         'type' => 'int',
+        'size' => 'big',
         'not null' => FALSE,
       ),
       'metrics_id' => array(
         'description' => 'foregn key to amcr_report_metrics_list table',
         'type' => 'int',
+        'size' => 'big',
         'not null' => FALSE,
       ),
       'type' => array(
@@ -51,17 +53,25 @@ function amcr_schema() {
       'data_id' => array(
         'description' => 'foregn key to amcr_report_data table',
         'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+      ),
+      'rd_id' => array(
+        'description' => 'foregn key to amcr_report_description table',
+        'type' => 'int',
+        'size' => 'big',
         'not null' => FALSE,
       ),
       'totals_id' => array(
         'description' => 'foregn key to amcr_report_counts_list table',
         'type' => 'int',
+        'size' => 'big',
         'not null' => FALSE,
       ),
     ),
     'primary key' => array('id'),
     'unique keys' => array(
-      'id' => array('id')
+      'id' => array('id'),
     ),
   );
   $schema['amcr_report_count'] = array(
@@ -77,6 +87,7 @@ function amcr_schema() {
       'list_id' => array(
         'description' => 'foreign key to amcr_report_count_list table',
         'type' => 'int',
+        'size' => 'big',
         'not null' => TRUE,
       ),
       'value' => array(
@@ -88,11 +99,12 @@ function amcr_schema() {
       'metric_id' => array(
         'description' => 'foreign key to amcr_report_metric table',
         'type' => 'int',
+        'size' => 'big',
         'not null' => TRUE,
       ),
     ),
     'unique keys' => array(
-      'id' => array('id')
+      'id' => array('id'),
     ),
   );
 
@@ -109,11 +121,12 @@ function amcr_schema() {
       'report_id' => array(
         'description' => 'foreign key to amcr_report table',
         'type' => 'int',
+        'size' => 'big',
         'not null' => TRUE,
       ),
     ),
     'unique keys' => array(
-      'id' => array('id')
+      'id' => array('id'),
     ),
   );
 
@@ -156,11 +169,13 @@ function amcr_schema() {
       'counts_id' => array(
         'description' => 'foregn key to amcr_report_count',
         'type' => 'int',
+        'size' => 'big',
         'not null' => TRUE,
       ),
       'breakdown_id' => array(
         'description' => 'Child data list. foreign key to amcr_report_data_list',
         'type' => 'int',
+        'size' => 'big',
         'not null' => FALSE,
       ),
       'name' => array(
@@ -172,17 +187,19 @@ function amcr_schema() {
       'list_id' => array(
         'description' => 'foregn key to amcr_report_data_list',
         'type' => 'int',
+        'size' => 'big',
         'not null' => TRUE,
       ),
       'element_id' => array(
         'description' => 'foreign key to amcr_report_element table',
         'type' => 'int',
+        'size' => 'big',
         'not null' => TRUE,
       ),
     ),
     'primary key' => array('id'),
     'unique keys' => array(
-      'id' => array('id')
+      'id' => array('id'),
     ),
   );
 
@@ -199,12 +216,13 @@ function amcr_schema() {
       'report_id' => array(
         'description' => 'foreign key to amcr_report table',
         'type' => 'int',
+        'size' => 'big',
         'not null' => TRUE,
       ),
     ),
     'primary key' => array('id'),
     'unique keys' => array(
-      'id' => array('id')
+      'id' => array('id'),
     ),
   );
 
@@ -250,6 +268,7 @@ function amcr_schema() {
       'list_id' => array(
         'description' => 'foregn key to amcr_report_element_list table',
         'type' => 'int',
+        'size' => 'big',
         'not null' => TRUE,
       ),
     ),
@@ -269,11 +288,12 @@ function amcr_schema() {
       'report_id' => array(
         'description' => 'foreign key to amcr_report table',
         'type' => 'int',
+        'size' => 'big',
         'not null' => TRUE,
       ),
     ),
     'unique keys' => array(
-      'id' => array('id')
+      'id' => array('id'),
     ),
   );
 
@@ -319,6 +339,7 @@ function amcr_schema() {
       'list_id' => array(
         'description' => 'foregn key to amcr_report_metric_list table',
         'type' => 'int',
+        'size' => 'big',
         'not null' => TRUE,
       ),
     ),
@@ -338,11 +359,12 @@ function amcr_schema() {
       'report_id' => array(
         'description' => 'foreign key to report table',
         'type' => 'int',
+        'size' => 'big',
         'not null' => TRUE,
       ),
     ),
     'unique keys' => array(
-      'id' => array('id')
+      'id' => array('id'),
     ),
   );
 
@@ -387,12 +409,13 @@ function amcr_schema() {
       'report_id' => array(
         'description' => 'foreign key to report table',
         'type' => 'int',
+        'size' => 'big',
         'not null' => FALSE,
       ),
     ),
     'primary key' => array('id'),
     'unique keys' => array(
-      'id' => array('id')
+      'id' => array('id'),
     ),
   );
 
@@ -429,8 +452,9 @@ function amcr_schema() {
         'not null' => FALSE,
       ),
       'search_id' => array(
-        'description' => 'search_id foreign key to amcr_rd_search table',
+        'description' => 'search_id foreign key to amcr_report_definition_search table',
         'type' => 'int',
+        'size' => 'big',
         'not null' => FALSE,
       ),
       'selected' => array(
@@ -442,6 +466,7 @@ function amcr_schema() {
       'rd_id' => array(
         'description' => 'foreign key to amcr_report_description',
         'type' => 'int',
+        'size' => 'big',
         'not null' => TRUE,
       ),
       'weight' => array(
@@ -453,7 +478,42 @@ function amcr_schema() {
     ),
     'primary key' => array('id'),
     'unique keys' => array(
-      'id' => array('id')
+      'id' => array('id'),
+    ),
+  );
+
+  $schema['amcr_report_definition_search'] = array(
+    'description' => 'elements search conditions',
+    'fields' => array(
+      'id' => array(
+        'description' => 'primary key',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
+      'keywords' => array(
+        'description' => 'keywords field of reportDefinitionSearch structure',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => FALSE,
+      ),
+      'type' => array(
+        'description' => 'boolean values used to link multiple search terms. Possible values: AND, OR, NOT',
+        'type' => 'varchar',
+        'length' => '3',
+        'not null' => FALSE,
+      ),
+      'searches' => array(
+        'description' => 'Id of nested search conditions list. Currently not used',
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+      ),
+    ),
+    'primary key' => array('id'),
+    'unique keys' => array(
+      'id' => array('id'),
     ),
   );
 
@@ -476,6 +536,7 @@ function amcr_schema() {
       'rd_id' => array(
         'description' => 'foreign key to amcr_report_description',
         'type' => 'int',
+        'size' => 'big',
         'not null' => TRUE,
       ),
       'weight' => array(
@@ -487,7 +548,7 @@ function amcr_schema() {
     ),
     'primary key' => array('id'),
     'unique keys' => array(
-      'id' => array('id')
+      'id' => array('id'),
     ),
   );
 
@@ -597,7 +658,7 @@ function amcr_schema() {
     ),
     'primary key' => array('id'),
     'unique keys' => array(
-      'id' => array('id')
+      'id' => array('id'),
     ),
   );
 
@@ -605,3 +666,10 @@ function amcr_schema() {
   return $schema;
 }
 
+/**
+ * Implements hook_uninstall().
+ */
+function amcr_uninstall() {
+  variable_del('amcr_username');
+  variable_del('amcr_secret');
+}

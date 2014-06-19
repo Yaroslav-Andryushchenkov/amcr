@@ -67,8 +67,8 @@ function amcr_admin_form($form, &$form_state) {
  * Form constructor for adding and editing report config.
  *
  * @param $report
- *   (optional) If editing a report, the report to edit as a PHP stdClass value; if
- *   adding a new report, NULL. Defaults to NULL.
+ *   (optional) If editing a report, the report to edit as a PHP stdClass value;
+ *   if adding a new report, NULL. Defaults to NULL.
  *
  * @ingroup forms
  * @see amcr_form_report_validate()
@@ -121,11 +121,11 @@ function amcr_report_form($form, &$form_state, AmcrReportConfig $report = NULL) 
     '#default_value' => isset($report->date_from) ?
         array('year' => date('Y', intval($report->date_from)),
           'month' => date('n', intval($report->date_from)),
-          'day' => date('j', intval($report->date_from))
+          'day' => date('j', intval($report->date_from)),
         ) : '',
     '#maxlength' => NULL,
-    '#description' => t('Data is analysed since \'Date from \' till \'Date to\'. It is '.
-      'used if \'Period\' is not specified '),
+    '#description' => t("Data is analysed since 'Date from ' till 'Date to'. It is '.
+      'used if 'Period' is not specified "),
     '#required' => FALSE,
   );
 
@@ -134,7 +134,7 @@ function amcr_report_form($form, &$form_state, AmcrReportConfig $report = NULL) 
     '#default_value' => isset($report->date_to) ?
         array('year' => date('Y', intval($report->date_to)),
         'month' => date('n', intval($report->date_to)),
-        'day' => date('j', intval($report->date_to))
+        'day' => date('j', intval($report->date_to)),
         ) : '',
     '#maxlength' => NULL,
     '#description' => t('Data is analysed since \'Date from \' till \'Date to\'. It is '.
@@ -243,11 +243,18 @@ function amcr_add_metric_submit($form, &$form_state) {
  *  report element
  */
 function _amcr_element_form($item = NULL) {
+  $types = array(
+    'OR' => 'OR',
+    'AND' => 'AND',
+    'NOT' => 'NOT',
+  );
+
   $form = array(
     'id' => array(
       '#type' => 'textfield',
       '#default_value' => isset($item->element_id) ? $item->element_id : '',
-      '#maxlength' => 100,
+      '#maxlength' => 255,
+      '#size' => 30,
     ),
     'weight' => array(
       '#type' => 'weight',
@@ -255,7 +262,19 @@ function _amcr_element_form($item = NULL) {
       '#default_value' => $item->weight,
       '#title_display' => 'invisible',
     ),
+    'report_suite_id' => array('#type' => 'textfield',
+      '#title' => t('Key words'),
+      '#default_value' => isset($item->keywords) ? $item->keywords: '',
+      '#maxlength' => 255,
+      '#size' => 100,
+    ),
+    'type' => array('#type' => 'select',
+      '#title' => t('Search type'),
+      '#default_value' => isset($item->search_type) ? $item->search_type : 'OR',
+      '#options' => $types,
+    ),
   );
+
 
   return $form;
 }
@@ -285,8 +304,8 @@ function _amcr_elements_list(&$form_state = NULL, $report_elements) {
 
   $form['#title'] = t('Elements');
   $form['#tree'] = true;
-  $form['#description'] = t('A list of elements that breaks down '.
-    '(organizes) the metrics data in the report');
+  $form['#description'] = t('A list of elements that breaks down'.
+    ' (organizes) the metrics data in the report');
   $form['#theme'] = 'amcr_element_form';
   $form['#prefix'] = '<div id="amcr-elements-wrapper">';
   $form['#suffix'] = '</div>';

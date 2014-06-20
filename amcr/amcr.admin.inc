@@ -79,11 +79,20 @@ function amcr_admin_form($form, &$form_state) {
  * @see amcr_form_report_submit()
  */
 function amcr_report_form($form, &$form_state, AmcrReportConfig $report = NULL) {
-  $methods = array(
+  $method_options = array(
     'ranked' => 'Ranked report',
     'trended' => 'Trended report',
     'overtime' => 'Overtime report',
     //'realtime' => 'Real time report',
+  );
+
+  $date_granularity_options = array(
+    'none' => '',
+    'hour' => 'hour',
+    'dae' => 'day',
+    'week' => 'week',
+    'quarter' => 'hour',
+    'year' => 'year',
   );
 
   $form['name'] = array(
@@ -99,7 +108,7 @@ function amcr_report_form($form, &$form_state, AmcrReportConfig $report = NULL) 
     '#title' => t('Description'),
     '#default_value' => isset($report->description) ? $report->description : '',
     '#maxlength' => NULL,
-    '#description' => t('Report Description. It is shown or report details page'),
+    '#description' => t('It is shown or report edit page. Admins should leave their notes about the report here.'),
     '#required' => TRUE,
   );
   $form['report_suite_id'] = array(
@@ -114,7 +123,7 @@ function amcr_report_form($form, &$form_state, AmcrReportConfig $report = NULL) 
     '#type' => 'select',
     '#title' => t('Report type'),
     '#default_value' => isset($report->method) ? $report->method : 'ranked',
-    '#options' => $methods,
+    '#options' => $method_options,
   );
 
   $form['elements'] = _amcr_elements_list($form_state,
@@ -122,6 +131,15 @@ function amcr_report_form($form, &$form_state, AmcrReportConfig $report = NULL) 
 
   $form['metrics'] = _amcr_metrics_list($form_state,
     !empty($report->metrics) ? $report->metrics : array());
+
+  $form['date_granularity'] = array(
+    '#type' => 'select',
+    '#title' => t('Date granularity'),
+    '#default_value' => isset($report->date_granularity) ? $report->date_granularity : 'none',
+    '#description' => t('A time period used to display report data.'),
+    '#required' => FALSE,
+    '#options' => $date_granularity_options,
+  );
 
   $form['date_from'] = array(
     '#type' => 'date',
@@ -133,8 +151,8 @@ function amcr_report_form($form, &$form_state, AmcrReportConfig $report = NULL) 
       'day' => date('j', intval($report->date_from)),
     ) : '',
     '#maxlength' => NULL,
-    '#description' => t("Data is analysed since 'Date from ' till 'Date to'. It is '.
-      'used if 'Period' is not specified "),
+    '#description' => t("Data is analysed since 'Date from' till 'Date to'. It is
+      not used if 'Period' is not specified "),
     '#required' => FALSE,
   );
 
@@ -148,17 +166,20 @@ function amcr_report_form($form, &$form_state, AmcrReportConfig $report = NULL) 
       'day' => date('j', intval($report->date_to)),
     ) : '',
     '#maxlength' => NULL,
-    '#description' => t("Data is analysed since 'Date from ' till 'Date to'. It is used if 'Period' is not specified."),
+    '#description' => t("Data is analysed since 'Date from ' till 'Date to'.'
+     . ' It is not used if 'Period' is not specified."),
     '#required' => FALSE,
   );
   $form['period'] = array(
     '#type' => 'textfield',
     '#title' => t('Period'),
-    '#default_value' => isset($report->period) ? $report->period / 3600 : '',
+    '#default_value' => isset($report->period) ? $report->period / 86400 : '',
     '#maxlength' => NULL,
     '#size' => 5,
-    '#description' => t('Period in hours for getting data. It is counted for the moment report execution.'),
+    '#description' => t('Period in days for getting data. It is counted from the moment report execution.'),
     '#required' => FALSE,
+    '#element_validate' => array('amcr_int_number_validate'),
+    '#error_title' => t('Period'),
   );
   $form['sort_by'] = array(
     '#type' => 'textfield',
@@ -175,6 +196,8 @@ function amcr_report_form($form, &$form_state, AmcrReportConfig $report = NULL) 
     '#size' => 5,
     '#description' => t('Number of minutes between running report update procedure.'),
     '#required' => FALSE,
+    '#element_validate' => array('amcr_int_number_validate'),
+    '#error_title' => t('Update frequency'),
   );
 
   $form['actions'] = array('#type' => 'actions');
@@ -273,12 +296,16 @@ function _amcr_element_form($item = NULL) {
       '#default_value' => isset($item->top) ? $item->top : '',
       '#maxlength' => 5,
       '#size' => 2,
+      '#element_validate' => array('amcr_int_number_validate'),
+      '#error_title' => t('Top'),
     ),
     'starting_with' => array(
       '#type' => 'textfield',
       '#default_value' => isset($item->starting_with) ? $item->starting_with : '',
       '#maxlength' => 5,
       '#size' => 2,
+      '#element_validate' => array('amcr_int_number_validate'),
+      '#error_title' => t('Starting with'),
     ),
     'keywords' => array(
       '#type' => 'textfield',
@@ -326,7 +353,20 @@ function _amcr_elements_list(&$form_state = NULL, $report_elements = NULL) {
 
   $form['#title'] = t('Elements');
   $form['#tree'] = TRUE;
-  $form['#description'] = t('A list of elements that breaks down (organizes) the metrics data in the report');
+  $form['#description'] = t('A list of elements that breaks down
+   (organizes) the metrics data in the report. Parameters:
+    "Top" - (Optional) Specifies the number of rows in the report to return. Use with
+    startingWith to generate paged reports. For example, top=5 returns five. rows.
+    "Starting with" - (Optional) Specifies the first row in the report to return. Use with top to
+    generate paged reports. For example, startingWith=20 returns report rows starting at row 20.
+    "Keywords" - a list of keywords to include or exclude from the search, based on the type.
+    Keyword values can also leverage the following special characters to define
+    advanced search criteria:
+    * Wild Card (e.g. "page*.html")
+    ^ Starts With (e.g. "^http://")
+    $ Ends With (e.g. ".html$")
+    "Search type" - boolean values used to link multiple search terms in a report search.
+  ');
   $form['#theme'] = 'amcr_element_form';
   $form['#prefix'] = '<div id="amcr-elements-wrapper">';
   $form['#suffix'] = '</div>';
@@ -410,10 +450,10 @@ function _amcr_metrics_list(&$form_state = NULL, $report_metrics = NULL) {
   }
 
   $form['#title'] = t('Metrics');
-  $form['#description'] = 'A list of the events to include in the report.'
+  $form['#description'] = t('A list of the events to include in the report.'
     . ' A report must specify at least one metric (Ranked/Overtime reports'
     . ' support one or more metrics reportDefinitionMetricList metrics.'
-    . ' Trended reports support only one metric.)';
+    . ' Trended reports support only one metric');
   $form['#tree'] = TRUE;
   $form['#theme'] = 'amcr_metric_form';
   $form['#prefix'] = '<div id="amcr-metrics-wrapper">';
@@ -600,11 +640,13 @@ function amcr_report_form_submit($form, &$form_state) {
   $report_config->description = !empty($edit['description']) ? $edit['description'] : NULL;
   $report_config->report_suite_id = !empty($edit['report_suite_id']) ? $edit['report_suite_id'] : NULL;
   $report_config->method = !empty($edit['method']) ? $edit['method'] : NULL;
+  $report_config->date_granularity = (!empty($edit['date_granularity']) &&
+    $edit['date_granularity'] != 'none') ? $edit['date_granularity'] : NULL;
   $report_config->date_from = mktime(0, 0, 0, $edit['date_from']['month'],
     $edit['date_from']['day'], $edit['date_from']['year']);
   $report_config->date_to = mktime(23, 59, 59, $edit['date_to']['month'],
     $edit['date_to']['day'], $edit['date_to']['year']);
-  $report_config->period = !empty($edit['period']) ? $edit['period'] * 3600 : NULL;
+  $report_config->period = !empty($edit['period']) ? $edit['period'] * 86400 : NULL;
   $report_config->sort_by = !empty($edit['sort_by']) ? $edit['sort_by'] : NULL;
   $report_config->update_frequency = !empty($edit['update_frequency']) ? $edit['update_frequency'] * 60 : NULL;
 
@@ -648,10 +690,12 @@ function amcr_report_form_submit($form, &$form_state) {
   $form_state['redirect'] = 'admin/config/services/amcr/';
 
   if (isset($form_state['values']['id'])) {
-    drupal_set_message(t('The report config %report has been updated.', array('%report' => $form_state['values']['name'])));
+    drupal_set_message(t('The report config %report has been updated.',
+      array('%report' => $form_state['values']['name'])));
   }
   else {
-    drupal_set_message(t('The report config %report has been added.', array('%report' => $form_state['values']['name'])));
+    drupal_set_message(t('The report config %report has been added.',
+      array('%report' => $form_state['values']['name'])));
   }
 }
 
@@ -691,6 +735,14 @@ function amcr_admin_remove_report_submit($form, &$form_state) {
 }
 
 
-
+/**
+ * Report form period validation function.
+ */
+function amcr_int_number_validate($element, &$form_state) {
+  if (!preg_match('/^[0-9]+$/is', $element['#value']) && !empty($element['#value'])) {
+    form_error($element, t('@name must be an integer number or empty', array('@name' => $element['#error_title'])));
+  }
+  return $element;
+}
 
 

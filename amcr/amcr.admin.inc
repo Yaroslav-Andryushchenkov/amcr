@@ -9,12 +9,12 @@
 /**
  * Displays the reports list.
  *
- * @return
+ * @return string
  *   A HTML-formatted string with list of reports.
  */
 function amcr_report_list() {
-  $result = db_query('SELECT rd.id, rd.name, rd.last_update, rd.update_frequency '.
-    'FROM {amcr_report_description} rd ORDER BY rd.name');
+  $result = db_query('SELECT rd.id, rd.name, rd.last_update, rd.update_frequency'
+    . ' FROM {amcr_report_description} rd ORDER BY rd.name');
 
   $output = '<h3>' . t('Report list') . '</h3>';
 
@@ -26,14 +26,16 @@ function amcr_report_list() {
     $rows[] = array(
       $report->id,
       $report->name,
-      ($report->last_update ? format_date($report->last_update,'long') : t('never')),
-      ($report->update_frequency ? format_date($report->last_update + $report->update_frequency,'long') : t('never')),
+      ($report->last_update ? format_date($report->last_update, 'long') : t('never')),
+      ($report->update_frequency ? format_date($report->last_update + $report->update_frequency, 'long') : t('never')),
       l(t('edit'), "admin/config/services/amcr/edit/$report->id"),
       l(t('remove'), "admin/config/services/amcr/remove/$report->id"),
       l(t('run now'), "admin/config/services/amcr/update/$report->id"),
     );
   }
-  $output .= theme('table', array('header' => $header, 'rows' => $rows,
+  $output .= theme('table', array(
+    'header' => $header,
+    'rows' => $rows,
     'empty' => t('No reports available. <a href="@link">Add report</a>.',
       array('@link' => url('admin/config/services/amcr/add/')))));
 
@@ -46,15 +48,17 @@ function amcr_report_list() {
  * @ingroup forms
  */
 function amcr_admin_form($form, &$form_state) {
-  $form['amcr_username'] = array('#type' => 'textfield',
+  $form['amcr_username'] = array(
+    '#type' => 'textfield',
     '#title' => t('API Username'),
-    '#default_value' => variable_get('amcr_username',''),
+    '#default_value' => variable_get('amcr_username', ''),
     '#maxlength' => NULL,
     '#required' => TRUE,
   );
-  $form['amcr_secret'] = array('#type' => 'textfield',
+  $form['amcr_secret'] = array(
+    '#type' => 'textfield',
     '#title' => t('Shared secret'),
-    '#default_value' => variable_get('amcr_secret',''),
+    '#default_value' => variable_get('amcr_secret', ''),
     '#maxlength' => NULL,
     '#required' => TRUE,
   );
@@ -66,7 +70,7 @@ function amcr_admin_form($form, &$form_state) {
 /**
  * Form constructor for adding and editing report config.
  *
- * @param $report
+ * @param AmcrReportConfig $report
  *   (optional) If editing a report, the report to edit as a PHP stdClass value;
  *   if adding a new report, NULL. Defaults to NULL.
  *
@@ -74,36 +78,40 @@ function amcr_admin_form($form, &$form_state) {
  * @see amcr_form_report_validate()
  * @see amcr_form_report_submit()
  */
-
 function amcr_report_form($form, &$form_state, AmcrReportConfig $report = NULL) {
-  $methods = array('ranked' => 'Ranked report',
+  $methods = array(
+    'ranked' => 'Ranked report',
     'trended' => 'Trended report',
     'overtime' => 'Overtime report',
     //'realtime' => 'Real time report',
   );
 
-  $form['name'] = array('#type' => 'textfield',
+  $form['name'] = array(
+    '#type' => 'textfield',
     '#title' => t('Title'),
     '#default_value' => isset($report->name) ? $report->name : '',
     '#maxlength' => 255,
     '#description' => t('The name of the report. It is shown in list of reports.'),
     '#required' => TRUE,
   );
-  $form['description'] = array('#type' => 'textarea',
+  $form['description'] = array(
+    '#type' => 'textarea',
     '#title' => t('Description'),
     '#default_value' => isset($report->description) ? $report->description : '',
     '#maxlength' => NULL,
     '#description' => t('Report Description. It is shown or report details page'),
     '#required' => TRUE,
   );
-  $form['report_suite_id'] = array('#type' => 'textfield',
+  $form['report_suite_id'] = array(
+    '#type' => 'textfield',
     '#title' => t('Report suite id'),
     '#default_value' => isset($report->report_suite_id) ? $report->report_suite_id : '',
     '#maxlength' => NULL,
     '#description' => t('Id of omniture report suite'),
     '#required' => TRUE,
   );
-  $form['method'] = array('#type' => 'select',
+  $form['method'] = array(
+    '#type' => 'select',
     '#title' => t('Report type'),
     '#default_value' => isset($report->method) ? $report->method : 'ranked',
     '#options' => $methods,
@@ -115,48 +123,52 @@ function amcr_report_form($form, &$form_state, AmcrReportConfig $report = NULL) 
   $form['metrics'] = _amcr_metrics_list($form_state,
     !empty($report->metrics) ? $report->metrics : array());
 
-
-  $form['date_from'] = array('#type' => 'date',
+  $form['date_from'] = array(
+    '#type' => 'date',
     '#title' => t('Date from'),
     '#default_value' => isset($report->date_from) ?
-        array('year' => date('Y', intval($report->date_from)),
-          'month' => date('n', intval($report->date_from)),
-          'day' => date('j', intval($report->date_from)),
-        ) : '',
+    array(
+      'year' => date('Y', intval($report->date_from)),
+      'month' => date('n', intval($report->date_from)),
+      'day' => date('j', intval($report->date_from)),
+    ) : '',
     '#maxlength' => NULL,
     '#description' => t("Data is analysed since 'Date from ' till 'Date to'. It is '.
       'used if 'Period' is not specified "),
     '#required' => FALSE,
   );
 
-  $form['date_to'] = array('#type' => 'date',
+  $form['date_to'] = array(
+    '#type' => 'date',
     '#title' => t('Date to'),
     '#default_value' => isset($report->date_to) ?
-        array('year' => date('Y', intval($report->date_to)),
-        'month' => date('n', intval($report->date_to)),
-        'day' => date('j', intval($report->date_to)),
-        ) : '',
+    array(
+      'year' => date('Y', intval($report->date_to)),
+      'month' => date('n', intval($report->date_to)),
+      'day' => date('j', intval($report->date_to)),
+    ) : '',
     '#maxlength' => NULL,
-    '#description' => t('Data is analysed since \'Date from \' till \'Date to\'. It is '.
-      'used if \'Period\' is not specified '),
+    '#description' => t("Data is analysed since 'Date from ' till 'Date to'. It is used if 'Period' is not specified."),
     '#required' => FALSE,
   );
-  $form['period'] = array('#type' => 'textfield',
+  $form['period'] = array(
+    '#type' => 'textfield',
     '#title' => t('Period'),
     '#default_value' => isset($report->period) ? $report->period / 3600 : '',
     '#maxlength' => NULL,
     '#size' => 5,
-    '#description' => t('Period in hours for getting data. It is counted for the' .
-      ' moment report execution.'),
+    '#description' => t('Period in hours for getting data. It is counted for the moment report execution.'),
     '#required' => FALSE,
   );
-  $form['sort_by'] = array('#type' => 'textfield',
+  $form['sort_by'] = array(
+    '#type' => 'textfield',
     '#title' => t('Order by'),
     '#default_value' => isset($report->sort_by) ? $report->sort_by : '',
     '#description' => t('Metric id to sort results'),
     '#required' => FALSE,
   );
-  $form['update_frequency'] = array('#type' => 'textfield',
+  $form['update_frequency'] = array(
+    '#type' => 'textfield',
     '#title' => t('Update frequency'),
     '#default_value' => isset($report->update_frequency) ? $report->update_frequency / 60 : '',
     '#maxlength' => NULL,
@@ -210,7 +222,7 @@ function amcr_metric_js($form, $form_state) {
 }
 
 /**
- * Implements 'Add element' submit handler
+ * Implements 'Add element' submit handler.
  */
 function amcr_add_element_submit($form, &$form_state) {
   if ($form_state['values']['elements']['add']) {
@@ -224,7 +236,7 @@ function amcr_add_element_submit($form, &$form_state) {
 
 
 /**
- * Implements 'Add metric' submit handler
+ * Implements 'Add metric' submit handler.
  */
 function amcr_add_metric_submit($form, &$form_state) {
   if ($form_state['values']['metrics']['add']) {
@@ -236,11 +248,11 @@ function amcr_add_metric_submit($form, &$form_state) {
   $form_state['rebuild'] = TRUE;
 }
 
-/*
- * Generates form structure for element item
+/**
+ * Generates form structure for element item.
  *
- * @param $item
- *  report element
+ * @param StdClass $item
+ *   report element
  */
 function _amcr_element_form($item = NULL) {
   $types = array(
@@ -256,42 +268,52 @@ function _amcr_element_form($item = NULL) {
       '#maxlength' => 255,
       '#size' => 30,
     ),
-    'weight' => array(
-      '#type' => 'weight',
-      '#title' => t('Weight'),
-      '#default_value' => $item->weight,
-      '#title_display' => 'invisible',
+    'top' => array(
+      '#type' => 'textfield',
+      '#default_value' => isset($item->top) ? $item->top : '',
+      '#maxlength' => 5,
+      '#size' => 2,
     ),
-    'report_suite_id' => array('#type' => 'textfield',
-      '#title' => t('Key words'),
-      '#default_value' => isset($item->keywords) ? $item->keywords: '',
+    'starting_with' => array(
+      '#type' => 'textfield',
+      '#default_value' => isset($item->starting_with) ? $item->starting_with : '',
+      '#maxlength' => 5,
+      '#size' => 2,
+    ),
+    'keywords' => array(
+      '#type' => 'textfield',
+      '#default_value' => isset($item->keywords) ? $item->keywords : '',
       '#maxlength' => 255,
       '#size' => 100,
     ),
-    'type' => array('#type' => 'select',
-      '#title' => t('Search type'),
+    'search_type' => array(
+      '#type' => 'select',
       '#default_value' => isset($item->search_type) ? $item->search_type : 'OR',
       '#options' => $types,
     ),
+    'weight' => array(
+      '#type' => 'weight',
+      '#default_value' => $item->weight,
+      '#title_display' => 'invisible',
+    ),
   );
-
 
   return $form;
 }
 
 
-/*
- * Generates form structure for elements list
+/**
+ * Generates form structure for elements list.
  *
- * @param &$form_state
- *  the function change $form_state['elements_count'] parameter
- * @param $report_elements
- *  $report->elements array restored from db
+ * @param array &$form_state
+ *   the function change $form_state['elements_count'] parameter
+ * @param array $report_elements
+ *   $report->elements array restored from db
  *
- * @return
- *  $form['elements'] structure
+ * @return array
+ *   $form['elements'] structure
  */
-function _amcr_elements_list(&$form_state = NULL, $report_elements) {
+function _amcr_elements_list(&$form_state = NULL, $report_elements = NULL) {
 
   $form = array();
 
@@ -303,9 +325,8 @@ function _amcr_elements_list(&$form_state = NULL, $report_elements) {
   }
 
   $form['#title'] = t('Elements');
-  $form['#tree'] = true;
-  $form['#description'] = t('A list of elements that breaks down'.
-    ' (organizes) the metrics data in the report');
+  $form['#tree'] = TRUE;
+  $form['#description'] = t('A list of elements that breaks down (organizes) the metrics data in the report');
   $form['#theme'] = 'amcr_element_form';
   $form['#prefix'] = '<div id="amcr-elements-wrapper">';
   $form['#suffix'] = '</div>';
@@ -313,27 +334,31 @@ function _amcr_elements_list(&$form_state = NULL, $report_elements) {
   $delta = 0;
   $weight = 0;
 
-  if(isset($form_state['values']['elements']['add'])) {
+  if (isset($form_state['values']['elements']['add'])) {
     foreach ($form_state['values']['elements']['items'] as $key => $element) {
       $item = new stdClass();
       $item->element_id = $element['id'];
+      $item->top = $element['top'];
+      $item->starting_with = $element['starting_with'];
+      $item->keywords = $element['keywords'];
+      $item->search_type = $element['search_type'];
       $item->weight = $element['weight'];
       $form['items'][$key] = _amcr_element_form($item);
       $delta++;
-      if($item->weight > $weight) {
-        $weight = $item->weight;
-      }
-    }
-  } else {
-    foreach ($report_elements as $item) {
-      $form['items'][$item->id] = _amcr_element_form($item);
-      $delta++;
-      if($item->weight > $weight) {
+      if ($item->weight > $weight) {
         $weight = $item->weight;
       }
     }
   }
-
+  else {
+    foreach ($report_elements as $item) {
+      $form['items'][$item->id] = _amcr_element_form($item);
+      $delta++;
+      if ($item->weight > $weight) {
+        $weight = $item->weight;
+      }
+    }
+  }
 
   for ($delta; $delta < $elements_count; $delta++) {
     $key = 'new:' . $delta;
@@ -363,19 +388,18 @@ function _amcr_elements_list(&$form_state = NULL, $report_elements) {
 }
 
 
-/*
- * Generates form structure for metrics list
+/**
+ * Generates form structure for metrics list.
  *
- * @param &$form_state
- *  the function change $form_state['metrics_count'] parameter
- * @param $report_metrics
- *  $report->metrics array restored from db
+ * @param array &$form_state
+ *   the function change $form_state['metrics_count'] parameter
+ * @param array $report_metrics
+ *   $report->metrics array restored from db
  *
- * @return
- *  $form['metrics'] structure
+ * @return array
+ *   $form['metrics'] structure
  */
-function _amcr_metrics_list(&$form_state = NULL, $report_metrics) {
-
+function _amcr_metrics_list(&$form_state = NULL, $report_metrics = NULL) {
   $form = array();
 
   if (isset($form_state['metrics_count'])) {
@@ -387,24 +411,24 @@ function _amcr_metrics_list(&$form_state = NULL, $report_metrics) {
 
   $form['#title'] = t('Metrics');
   $form['#description'] = 'A list of the events to include in the report.'
-    .' A report must specify at least one metric (Ranked/Overtime reports'
-    .' support one or more metrics reportDefinitionMetricList metrics.'
-    .' Trended reports support only one metric.)';
-  $form['#tree'] = true;
+    . ' A report must specify at least one metric (Ranked/Overtime reports'
+    . ' support one or more metrics reportDefinitionMetricList metrics.'
+    . ' Trended reports support only one metric.)';
+  $form['#tree'] = TRUE;
   $form['#theme'] = 'amcr_metric_form';
   $form['#prefix'] = '<div id="amcr-metrics-wrapper">';
   $form['#suffix'] = '</div>';
 
   $delta = 0;
   $weight = 0;
-  if(isset($form_state['values']['metrics']['add'])) {
+  if (isset($form_state['values']['metrics']['add'])) {
     foreach ($form_state['values']['metrics']['items'] as $key => $metric) {
       $item = new stdClass();
       $item->metric_id = $metric['id'];
       $item->weight = $metric['weight'];
       $form['items'][$key] = _amcr_metric_form($item);
       $delta++;
-      if($item->weight > $weight) {
+      if ($item->weight > $weight) {
         $weight = $item->weight;
       }
     }
@@ -413,12 +437,11 @@ function _amcr_metrics_list(&$form_state = NULL, $report_metrics) {
     foreach ($report_metrics as $item) {
       $form['items'][$item->id] = _amcr_metric_form($item);
       $delta++;
-      if($item->weight > $weight) {
+      if ($item->weight > $weight) {
         $weight = $item->weight;
       }
     }
   }
-
 
   for ($delta; $delta < $metrics_count; $delta++) {
     $key = 'new:' . $delta;
@@ -448,27 +471,27 @@ function _amcr_metrics_list(&$form_state = NULL, $report_metrics) {
 }
 
 
-/*
- * Generates form structure for metric item
+/**
+ * Generates form structure for metric item.
  *
- * @param $item
- *  report metric
+ * @param object $item
+ *   report metric
  */
 function _amcr_metric_form($item = NULL) {
   $form = array(
-    '#tree' => true,
+    '#tree' => TRUE,
     'id' => array(
       '#type' => 'textfield',
       '#default_value' => isset($item->metric_id) ? $item->metric_id : '',
       '#maxlength' => 100,
-      '#tree' => true,
+      '#tree' => TRUE,
     ),
     'weight' => array(
       '#type' => 'weight',
       '#title' => t('Weight'),
       '#default_value' => $item->weight,
       '#title_display' => 'invisible',
-      '#tree' => true,
+      '#tree' => TRUE,
     ),
   );
 
@@ -490,6 +513,10 @@ function theme_amcr_element_form($variables) {
     $rows[] = array(
       'data' => array(
         drupal_render($form['items'][$id]['id']),
+        drupal_render($form['items'][$id]['top']),
+        drupal_render($form['items'][$id]['starting_with']),
+        drupal_render($form['items'][$id]['keywords']),
+        drupal_render($form['items'][$id]['search_type']),
         drupal_render($form['items'][$id]['weight']),
       ),
       'class' => array('draggable'),
@@ -497,7 +524,14 @@ function theme_amcr_element_form($variables) {
   }
 
   $output = '<label>' . $form['#title'] . '</label>';
-  $header = array(t('Element ID'), t('Weight'));
+  $header = array(
+    t('Element ID'),
+    t('Results limit'),
+    t('Start from'),
+    t('Keywords'),
+    t('Search type'),
+    t('Weight'),
+  );
   $table_id = 'amcr-elements-table';
   $output .= theme('table', array(
     'header' => $header,
@@ -552,7 +586,6 @@ function theme_amcr_metric_form($variables) {
  * Form submission handler for amcr_report_form().
  *
  * @see amcr_report_form_validate()
- *
  */
 function amcr_report_form_submit($form, &$form_state) {
   if ($form_state['values']['op'] == t('Delete')) {
@@ -563,39 +596,46 @@ function amcr_report_form_submit($form, &$form_state) {
   $edit = $form_state['values'];
   $report_config = new AmcrReportConfig(NULL);
   $report_config->id = !empty($edit['id']) ? $edit['id'] : NULL;
-  $report_config->name = !empty($edit['name']) ?  $edit['name'] : NULL;
-  $report_config->description = !empty($edit['description']) ?  $edit['description'] : NULL;
-  $report_config->report_suite_id = !empty($edit['report_suite_id']) ?  $edit['report_suite_id'] : NULL;
-  $report_config->method = !empty($edit['method']) ?  $edit['method'] : NULL;
-  $report_config->date_from = mktime(0,0,0, $edit['date_from']['month'],
-    $edit['date_from']['day'],$edit['date_from']['year']);
-  $report_config->date_to = mktime(23,59,59, $edit['date_to']['month'],
-    $edit['date_to']['day'],$edit['date_to']['year']);
-  $report_config->period = !empty($edit['period']) ?  $edit['period'] * 3600 : NULL;
-  $report_config->sort_by = !empty($edit['sort_by']) ?  $edit['sort_by'] : NULL;
-  $report_config->update_frequency = !empty($edit['update_frequency']) ?  $edit['update_frequency'] * 60 : NULL;
+  $report_config->name = !empty($edit['name']) ? $edit['name'] : NULL;
+  $report_config->description = !empty($edit['description']) ? $edit['description'] : NULL;
+  $report_config->report_suite_id = !empty($edit['report_suite_id']) ? $edit['report_suite_id'] : NULL;
+  $report_config->method = !empty($edit['method']) ? $edit['method'] : NULL;
+  $report_config->date_from = mktime(0, 0, 0, $edit['date_from']['month'],
+    $edit['date_from']['day'], $edit['date_from']['year']);
+  $report_config->date_to = mktime(23, 59, 59, $edit['date_to']['month'],
+    $edit['date_to']['day'], $edit['date_to']['year']);
+  $report_config->period = !empty($edit['period']) ? $edit['period'] * 3600 : NULL;
+  $report_config->sort_by = !empty($edit['sort_by']) ? $edit['sort_by'] : NULL;
+  $report_config->update_frequency = !empty($edit['update_frequency']) ? $edit['update_frequency'] * 60 : NULL;
 
-  foreach($edit['elements']['items'] as $id => $fields) {
-    if(!empty($fields['id'])) {
-      $element = new stdClass;
-      if(is_numeric($id)) {
+  foreach ($edit['elements']['items'] as $id => $fields) {
+    if (!empty($fields['id'])) {
+      $element = new stdClass();
+      if (is_numeric($id)) {
         $element->id = $id;
-      } else {
-        $element->id = null;
+      }
+      else {
+        $element->id = NULL;
       }
       $element->element_id = $fields['id'];
+      $element->weight = $fields['weight'];
+      $element->top = $fields['top'];
+      $element->starting_with = $fields['starting_with'];
+      $element->keywords = $fields['keywords'];
+      $element->search_type = $fields['search_type'];
       $element->weight = $fields['weight'];
       $report_config->elements[$id] = $element;
     }
   }
 
-  foreach($edit['metrics']['items'] as $id => $fields) {
-    if(!empty($fields['id'])) {
-      $metric = new stdClass;
-      if(is_numeric($id)) {
+  foreach ($edit['metrics']['items'] as $id => $fields) {
+    if (!empty($fields['id'])) {
+      $metric = new stdClass();
+      if (is_numeric($id)) {
         $metric->id = $id;
-      } else {
-        $metric->id = null;
+      }
+      else {
+        $metric->id = NULL;
       }
       $metric->metric_id = $fields['id'];
       $metric->weight = $fields['weight'];
@@ -618,9 +658,8 @@ function amcr_report_form_submit($form, &$form_state) {
 /**
  * Deletes a report config.
  *
- * @param $report
+ * @param AmcrReportConfig $report
  *   An AmcrReportConfig object to be deleted.
- *
  */
 function amcr_admin_remove_report($form, $form_state, $report) {
   return confirm_form(

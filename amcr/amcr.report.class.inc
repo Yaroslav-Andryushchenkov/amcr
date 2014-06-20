@@ -84,9 +84,9 @@ class AmcrReportConfig {
   public $date_to;
 
   /**
-   * Period in seconds. Period start from 'current time' - 'period' and finises at
-   * 'current time'. 'Current time' - the moment of a report execution. If it is
-   * specified date_from and date_to are ignored
+   * Period in seconds. Period start from 'current time' - 'period' and finises
+   * at 'current time'. 'Current time' - the moment of a report execution.
+   * If it is specified date_from and date_to are ignored
    *
    * @var int
    */
@@ -94,8 +94,9 @@ class AmcrReportConfig {
 
   /**
    * Number of seconds between report updates.
-   * Every time cron runs it checks if current time less than last_update + update_frequency
-   * if current timestamp is less, cron runs update data procedure for the report
+   * Every time cron runs it checks if current time less than
+   * last_update + update_frequency if current timestamp is less, cron runs
+   * update data procedure for the report.
    *
    * @var int
    */
@@ -166,21 +167,21 @@ class AmcrReportConfig {
   }
 
   /**
-   * Store report config into database
+   * Store report config into database.
    */
   public function save() {
-   $status = db_merge('amcr_report_description')
-      ->key(array('id' => $this->id))
+    $status = db_merge('amcr_report_description')
+     ->key(array('id' => $this->id))
       ->fields(array(
-        'name' => !empty($this->name) ?  $this->name : NULL,
-        'description' => !empty($this->description) ?  $this->description : NULL,
-        'report_suite_id' => !empty($this->report_suite_id) ?  $this->report_suite_id : NULL,
+        'name' => !empty($this->name) ? $this->name : NULL,
+        'description' => !empty($this->description) ? $this->description : NULL,
+        'report_suite_id' => !empty($this->report_suite_id) ? $this->report_suite_id : NULL,
         'method' => !empty($this->method) ?  $this->method : 'ranked',
-        'date_from' => !empty($this->date_from) ?  $this->date_from : NULL,
-        'date_to' => !empty($this->date_to) ?  $this->date_to : NULL,
-        'period' => !empty($this->period) ?  $this->period : NULL,
-        'sort_by' => !empty($this->sort_by) ?  $this->sort_by : NULL,
-        'update_frequency' => !empty($this->update_frequency) ?  $this->update_frequency : NULL,
+        'date_from' => !empty($this->date_from) ? $this->date_from : NULL,
+        'date_to' => !empty($this->date_to) ? $this->date_to : NULL,
+        'period' => !empty($this->period) ? $this->period : NULL,
+        'sort_by' => !empty($this->sort_by) ? $this->sort_by : NULL,
+        'update_frequency' => !empty($this->update_frequency) ? $this->update_frequency : NULL,
       ))
       ->execute();
 
@@ -198,12 +199,16 @@ class AmcrReportConfig {
             ->execute();
         }
       }
-      foreach($this->elements as $element) {
+      foreach ($this->elements as $element) {
         db_merge('amcr_report_definition_element')
           ->key(array('id' => $element->id))
           ->fields(array(
-            'element_id' => !empty($element->element_id) ?  $element->element_id : NULL,
-            'weight' => !empty($element->weight) ?  $element->weight : NULL,
+            'element_id' => !empty($element->element_id) ? $element->element_id : NULL,
+            'weight' => !empty($element->weight) ? $element->weight : NULL,
+            'top' => !empty($element->top) ? $element->top : NULL,
+            'starting_with' => !empty($element->starting_with) ? $element->starting_with : NULL,
+            'keywords' => !empty($element->keywords) ? $element->keywords : NULL,
+            'search_type' => !empty($element->search_type) ? $element->search_type : NULL,
             'rd_id' => $this->id,
           ))
           ->execute();

@@ -451,10 +451,16 @@ function amcr_schema() {
         'type' => 'int',
         'not null' => FALSE,
       ),
-      'search_id' => array(
-        'description' => 'search_id foreign key to amcr_report_definition_search table',
-        'type' => 'int',
-        'size' => 'big',
+      'keywords' => array(
+        'description' => 'keywords field of reportDefinitionSearch structure',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => FALSE,
+      ),
+      'search_type' => array(
+        'description' => 'boolean values used to link multiple search terms. Possible values: AND, OR, NOT',
+        'type' => 'varchar',
+        'length' => '3',
         'not null' => FALSE,
       ),
       'selected' => array(
@@ -474,41 +480,6 @@ function amcr_schema() {
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
-      ),
-    ),
-    'primary key' => array('id'),
-    'unique keys' => array(
-      'id' => array('id'),
-    ),
-  );
-
-  $schema['amcr_report_definition_search'] = array(
-    'description' => 'elements search conditions',
-    'fields' => array(
-      'id' => array(
-        'description' => 'primary key',
-        'type' => 'serial',
-        'unsigned' => TRUE,
-        'size' => 'big',
-        'not null' => TRUE,
-      ),
-      'keywords' => array(
-        'description' => 'keywords field of reportDefinitionSearch structure',
-        'type' => 'varchar',
-        'length' => '255',
-        'not null' => FALSE,
-      ),
-      'type' => array(
-        'description' => 'boolean values used to link multiple search terms. Possible values: AND, OR, NOT',
-        'type' => 'varchar',
-        'length' => '3',
-        'not null' => FALSE,
-      ),
-      'searches' => array(
-        'description' => 'Id of nested search conditions list. Currently not used',
-        'type' => 'int',
-        'size' => 'big',
-        'not null' => FALSE,
       ),
     ),
     'primary key' => array('id'),

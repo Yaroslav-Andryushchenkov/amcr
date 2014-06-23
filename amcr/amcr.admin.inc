@@ -79,19 +79,19 @@ function amcr_admin_form($form, &$form_state) {
  * @see amcr_form_report_submit()
  */
 function amcr_report_form($form, &$form_state, AmcrReportConfig $report = NULL) {
+
   $method_options = array(
     'ranked' => 'Ranked report',
     'trended' => 'Trended report',
     'overtime' => 'Overtime report',
     //'realtime' => 'Real time report',
   );
-
   $date_granularity_options = array(
     'none' => '',
     'hour' => 'hour',
     'dae' => 'day',
     'week' => 'week',
-    'quarter' => 'hour',
+    'quarter' => 'quarter',
     'year' => 'year',
   );
 
@@ -360,8 +360,8 @@ function _amcr_elements_list(&$form_state = NULL, $report_elements = NULL) {
     "Starting with" - (Optional) Specifies the first row in the report to return. Use with top to
     generate paged reports. For example, startingWith=20 returns report rows starting at row 20.
     "Keywords" - a list of keywords to include or exclude from the search, based on the type.
-    Keyword values can also leverage the following special characters to define
-    advanced search criteria:
+    Keywords must be separated by spaces, Keyword values can also leverage the following special
+    characters to define advanced search criteria:
     * Wild Card (e.g. "page*.html")
     ^ Starts With (e.g. "^http://")
     $ Ends With (e.g. ".html$")

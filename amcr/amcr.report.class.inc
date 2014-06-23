@@ -351,47 +351,62 @@ class AmcrReport {
     $elements = array();
     $config_elements = $this->config->elements;
     uasort($config_elements, 'cmp');
-    foreach($config_elements as $element) {
-      $elements[] =  array(
+    foreach ($config_elements as $element) {
+      $buf_element = array(
         'id' => $element->element_id,
       );
+      if (!empty($element->top)) {
+        $buf_element['top'] = $element->top;
+      }
+      if (!empty($element->keywords)) {
+        $buf_element['search']['type'] = $element->search_type;
+        $buf_element['search']['keywords'] = explode(' ', $element->keywords);
+      }
+      if (!empty($element->starting_with)) {
+        $buf_element['startingWith'] = $element->starting_with;
+      }
+      $elements[] = $buf_element;
     }
 
     $metrics = array();
     $config_metrics = $this->config->metrics;
     uasort($config_metrics, 'cmp');
-    foreach($config_metrics as $metric) {
-      $metrics[] =  array(
+    foreach ($config_metrics as $metric) {
+      $metrics[] = array(
         'id' => $metric->metric_id,
       );
     }
 
-    if(!empty($this->config->report_suite_id)) {
+    if (!empty($this->config->report_suite_id)) {
       $request_params['reportSuiteID'] = $this->config->report_suite_id;
     }
 
-    if(!empty($elements)) {
+    if (!empty($elements)) {
       $request_params['elements'] = $elements;
     }
 
-    if(!empty($metrics)) {
+    if (!empty($metrics)) {
       $request_params['metrics'] = $metrics;
     }
 
-    if(!empty($this->config->sort_by)){
+    if (!empty($this->config->date_granularity)) {
+      $request_params['dateGranularity'] = $this->config->date_granularity;
+    }
+
+    if (!empty($this->config->sort_by)) {
       $request_params['sortBy'] = $this->config->sort_by;
     }
 
-    if(!empty($this->config->period)) {
-      $request_params['dateFrom'] = date('Y-m-d H:i:s', time() - $this->config->period);
-      $request_params['dateTo'] = date('Y-m-d H:i:s');
+    if (!empty($this->config->period)) {
+      $request_params['dateFrom'] = date('Y-m-d', time() - $this->config->period);
+      $request_params['dateTo'] = date('Y-m-d');
     }
     else {
-      $request_params['dateFrom'] = date('Y-m-d H:i:s',  $this->config->date_from);
-      $request_params['dateTo'] = date('Y-m-d H:i:s',  $this->config->date_to);
+      $request_params['dateFrom'] = date('Y-m-d', $this->config->date_from);
+      $request_params['dateTo'] = date('Y-m-d', $this->config->date_to);
     }
 
-    switch($this->config->method) {
+    switch ($this->config->method) {
       case 'ranked':
         $response = $report_api->queueRanked($request_params);
         break;
@@ -404,7 +419,6 @@ class AmcrReport {
       default:
         $e = new AmcrException(t('ranked, trended and overtime reports are currently supported only.'));
         throw $e;
-        break;
     }
 
     $report_id = $response['reportID'];

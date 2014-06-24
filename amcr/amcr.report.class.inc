@@ -454,34 +454,37 @@ class AmcrReport {
   }
 
   /**
-   * Saves report data in amcr_report table
+   * Saves report data in amcr_report table.
    *
    * @param array $report
-   *  A structure containing the report data than is nested in report response.
+   *   A structure containing the report data than is nested in report response.
    *
    * @return int
-   *  foreign key to amcr_report table (Id of stored report)
-   *
+   *   foreign key to amcr_report table (Id of stored report).
    */
   protected function saveReport($report) {
     $metrics_id = $this->saveMetricList($report['metrics']);
     $elements_id  = $this->saveElementList($report['elements']);
     $totals_id = $this->saveCountList($report['totals']);
     $data_id = $this->saveReportDataList($report['data']);
+    if (!isset($this->config->id)) {
+      $this->config->save();
+    }
     $insert_data = array(
-      'report_suite' => isset($report['reportSuite']['id']) ? $report['reportSuite']['id'] : null,
-      'period' => isset($report['period']) ? $report['period'] : null,
+      'report_suite' => isset($report['reportSuite']['id']) ? $report['reportSuite']['id'] : NULL,
+      'period' => isset($report['period']) ? $report['period'] : NULL,
       'elements_id' => $elements_id,
       'metrics_id' => $metrics_id,
-      'type' => isset($report['type']) ? $report['type'] : null,
+      'type' => isset($report['type']) ? $report['type'] : NULL,
       'data_id' => $data_id,
       'totals_id' => $totals_id,
+      'rd_id' => $this->config->id,
     );
 
     $insert = db_insert('amcr_report');
     $insert->fields(array('report_suite', 'period', 'elements_id', 'metrics_id',
-      'type', 'data_id', 'totals_id'));
-    $insert->values($insert_data );
+      'type', 'data_id', 'totals_id', 'rd_id'));
+    $insert->values($insert_data);
     $report_id = $insert->execute();
 
     db_update('amcr_report_element_list')

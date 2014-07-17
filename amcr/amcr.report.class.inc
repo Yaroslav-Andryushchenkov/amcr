@@ -454,6 +454,16 @@ class AmcrReport {
   }
 
   /**
+   * Deletes report data.
+   *
+   * @param int $id
+   *   Id of report (primary key of amcr_report table)
+   */
+  public static function delete($id = NULL) {
+
+  }
+
+  /**
    * Saves report data in amcr_report table.
    *
    * @param array $report
